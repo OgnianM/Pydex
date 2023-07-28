@@ -1,7 +1,6 @@
 #pragma once
 #include <array>
 #include <ostream>
-#include <cassert>
 
 namespace pydex {
 namespace detail {
@@ -249,14 +248,17 @@ private:
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
 
         if constexpr (dims_other == dims_this) {
-            assert(size() == other.size());
+            if (size() < other.size()) {
+                throw std::runtime_error("Cannot assingn object of size " + std::to_string(other.size()) +
+                                         " to object of size " + std::to_string(size()) + ".");
+            }
             if constexpr (SizedIterable<decltype(other)>) {
                 int i = 0;
                 for (auto j : other) {
                     (*this)[i++] = j;
                 }
             } else {
-                for (int i = 0; i < size(); ++i) {
+                for (int i = 0; i < other.size(); ++i) {
                     (*this)[i] = other[i];
                 }
             }
@@ -297,7 +299,9 @@ private:
                 if (end < 0) {
                     end = Vt::size() + end;
                 }
-                assert(i < end);
+                if (i >= end) {
+                    throw std::out_of_range("Index out of range");
+                }
                 return next(i);
             } else {
                 auto start = detail::stoi<e[0]>();
@@ -318,7 +322,9 @@ private:
             }
             auto index = i + start;
 
-            assert(index < end);
+            if (index >= end) {
+                throw std::out_of_range("Index out of range");
+            }
             return next(index);
         }
     }
