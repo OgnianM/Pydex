@@ -117,8 +117,9 @@ concept Pydexable = requires(T x) { x[x.size()]; };
 
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
-class Indexer : Vt {
-
+struct Indexer : Vt {
+    static constexpr bool is_slice = detail::count(S[0], ':') == 1;
+private:
     constexpr auto next_impl(auto index) const {
         if constexpr (S.size() == 1) {
             return Vt::operator[](index);
@@ -140,27 +141,8 @@ class Indexer : Vt {
             } else return next_impl(index);
         }
     }
-public:
-    static constexpr bool is_slice = detail::count(S[0], ':') == 1;
 
-    constexpr auto next(auto index) {
-        auto res = next_impl(index);
-        return std::is_const_v<decltype(res)> ? const_cast<std::remove_const_t<decltype(res)>>(res) : res;
-    }
-    constexpr auto next(auto index) const {
-        return next_impl(index);
-    }
-
-    constexpr auto next() const {
-        return next_impl();
-    }
-    constexpr auto next() {
-        if constexpr (!std::is_same_v<decltype(next_impl()), void>) {
-            return next_impl();
-        }
-    }
-
-    constexpr auto operator[](auto i) const requires(is_slice) {
+    constexpr auto index_impl(auto i) const requires(is_slice) {
         constexpr auto e = detail::split<S[0], ':'>();
 
         static_assert(e.size() <= 2, "Error");
@@ -198,8 +180,35 @@ public:
             return next(index);
         }
     }
+public:
+
+    constexpr auto next(auto index) {
+        auto res = next_impl(index);
+        return std::is_const_v<decltype(res)> ? const_cast<std::remove_const_t<decltype(res)>>(res) : res;
+    }
+    constexpr auto next(auto index) const {
+        return next_impl(index);
+    }
+
+    constexpr auto next() const {
+        return next_impl();
+    }
+    constexpr auto next() {
+        if constexpr (!std::is_same_v<decltype(next_impl()), void>) {
+            return next_impl();
+        }
+    }
+
+    constexpr auto operator[](auto i) const requires(is_slice) {
+        return index_impl(i);
+    }
+
     constexpr auto operator[](auto i) requires(is_slice) {
-        return const_cast<std::remove_const_t<decltype(Indexer::operator[](0))>>(operator[](i));
+        if constexpr (std::is_const_v<decltype(index_impl(0))>) {
+            return const_cast<std::remove_const_t<decltype(index_impl(0))>>(index_impl(i));
+        } else {
+            return index_impl(i);
+        }
     }
 
     size_t size() const requires(is_slice) {

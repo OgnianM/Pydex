@@ -14,7 +14,11 @@ int main(int argc, char *argv[]) {
     std::vector<int> v1 {1, 2, 3, 4, 5, 6, 7, 8, 9};
 
     std::cout << pydex::pydex<pydex::expr(":, -1, 0:-2")>(data) << std::endl;
-    std::cout << pydex::pydex<pydex::expr(":-4")>(v1) << std::endl;
+    std::cout << pydex::pydex<pydex::expr(":, -1, 0:-2")>(data)[1] << std::endl;
+    std::cout << pydex::pydex<pydex::expr(":, -1, 0:-2")>(data)[1][1] << std::endl;
+
+    auto e = pydex::pydex<pydex::expr(":-4")>(v1);
+    std::cout << pydex::pydex<pydex::expr("2:")>(e) << std::endl;
 
     return 0;
 }
