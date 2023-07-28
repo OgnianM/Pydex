@@ -65,8 +65,12 @@ template<auto S> consteval auto pop_back() {
 
 template<auto S>
 consteval auto pop_back_if_empty() {
-    if constexpr (S[S.size()-1][0] == '\0') {
-        return pop_back<S>();
+    if constexpr (S.size() > 0) {
+        if constexpr (S[S.size() - 1][0] == '\0') {
+            return pop_back<S>();
+        } else {
+            return S;
+        }
     } else {
         return S;
     }
@@ -76,7 +80,7 @@ template<auto S, char delim>
 consteval auto split_impl() {
     constexpr int n = S.size();
     constexpr int c = count(S, delim);
-    std::array<std::array<char, n>, c+1> res;
+    std::array<std::array<char, n>, c+1> res{'\0'};
     int i = 0;
     int j = 0;
     int k = 0;
@@ -115,34 +119,172 @@ consteval auto sanitize() {
 template<typename T>
 concept Pydexable = requires(T x) { x[x.size()]; };
 
+template<typename T>
+concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
+
+template<typename T> requires (!Pydexable<T> && !SizedIterable<T>)
+consteval int dimensionality() {
+    return 0;
+}
+template<typename T> requires (Pydexable<T>)
+consteval int dimensionality() {
+    return 1 + dimensionality<decltype(std::declval<T>()[0])>();
+}
+
+template<typename T> requires (!Pydexable<T> && SizedIterable<T>)
+consteval int dimensionality() {
+    return 1 + dimensionality<decltype(*std::declval<T>().begin())>();
+}
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
 struct Indexer : Vt {
     static constexpr bool is_slice = detail::count(S[0], ':') == 1;
-private:
-    constexpr auto next_impl(auto index) const {
-        if constexpr (S.size() == 1) {
-            return Vt::operator[](index);
+    static constexpr int dim = detail::dimensionality<Indexer>();
+
+    Indexer& operator=(const auto& other) {
+        return operator_eq(other);
+    }
+
+    template<typename T>
+    Indexer& operator=(const std::initializer_list<T>& init) {
+        return operator_eq(init);
+    }
+
+    constexpr auto& next(auto index) const {
+        auto& v = next_impl(index);
+        return v;
+    }
+
+    constexpr auto& next() const requires(!is_slice) {
+        constexpr auto index = detail::stoi<S[0]>();
+        if constexpr (index < 0) {
+            auto& k = reinterpret_cast<const Vt&>(*this);
+            return next_impl(k.size() + index);
+        } else return next_impl(index);
+    }
+
+    constexpr auto &operator[](auto i) const {
+        if constexpr (is_slice) {
+            return index_impl(i);
         } else {
-            auto m = reinterpret_cast<const Indexer<detail::pop_front<S>(),
-                    std::decay_t<decltype(Vt::operator[](index))>>&>(Vt::operator[](index));
+            return next()[i];
+        }
+    }
+
+    constexpr auto& operator[](auto i) {
+        if constexpr (is_slice) {
+            auto& v = index_impl(i);
+            return const_cast<std::decay_t<decltype(v)>&>(v);
+        } else {
+            auto& v = next()[i];
+            return const_cast<std::decay_t<decltype(v)>&>(v);
+        }
+    }
+
+    constexpr size_t size() const {
+        if constexpr(is_slice) {
+            constexpr auto e = detail::split<S[0], ':'>();
+            static_assert(e.size() <= 2, "Error");
+
+            if constexpr (e.size() == 0) { // [:]
+                return Vt::size();
+            } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
+                if constexpr (S[0][0] == ':') {
+                    auto end = detail::stoi<e[0]>();
+                    if (end < 0) {
+                        end = Vt::size() + end;
+                    }
+                    return Vt::size() - (Vt::size() - end);
+                } else {
+                    auto start = detail::stoi<e[0]>();
+                    if (start < 0) {
+                        start = Vt::size() + start;
+                    }
+                    return Vt::size() - start;
+                }
+            } else { // [A:B]
+                auto start = detail::stoi<e[0]>();
+                auto end = detail::stoi<e[1]>();
+                if (start < 0) {
+                    start = Vt::size() + start;
+                }
+
+                if (end < 0) {
+                    end = Vt::size() + end;
+                }
+
+                if (start >= end) return 0;
+                return end - start;
+            }
+        } else {
+            return next().size();
+        }
+    }
+
+    template<typename T> struct Iterator {
+        T& indexer;
+        size_t i = 0;
+        Iterator(T& indexer, size_t start = 0) : indexer(indexer), i(start) { }
+
+        auto operator*() {
+            return indexer[i];
+        }
+        auto operator++() {
+            ++i;
+            return *this;
+        }
+        auto operator!=(const Iterator& other) {
+            return i != other.i;
+        }
+    };
+    auto begin() { return Iterator<Indexer&>(*this); }
+    auto end() { return Iterator<Indexer&>(*this, Indexer::size()); }
+    auto begin() const { return Iterator<const Indexer&>(*this); }
+    auto end() const { return Iterator<const Indexer&>(*this, Indexer::size()); }
+
+private:
+    Indexer& operator_eq(const auto& other) {
+        constexpr int dims_this = dim;
+        constexpr int dims_other = dimensionality<decltype(other)>();
+        static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
+
+        if constexpr (dims_other == dims_this) {
+            assert(size() == other.size());
+            if constexpr (SizedIterable<decltype(other)>) {
+                int i = 0;
+                for (auto j : other) {
+                    (*this)[i++] = j;
+                }
+            } else {
+                for (int i = 0; i < size(); ++i) {
+                    (*this)[i] = other[i];
+                }
+            }
+
+        } else if constexpr (dims_other <= dims_this) {
+            for (int i = 0; i < size(); ++i) {
+                (*this)[i] = other;
+            }
+        }
+        return *this;
+    }
+
+    constexpr auto& next_impl(auto index) const {
+        auto& k = reinterpret_cast<const Vt&>(*this);
+
+        if constexpr (S.size() == 1) {
+            return k[index];
+        } else {
+            auto& m = reinterpret_cast<const Indexer<detail::pop_front<S>(), std::decay_t<decltype(k[index])>>&>(k[index]);
             if constexpr (detail::is_number<S[1]>()) {
-                return m.operator auto();
+                return m.next();
             } else {
                 return m;
             }
         }
     }
-    constexpr auto next_impl() const {
-        if constexpr (!is_slice) {
-            constexpr auto index = detail::stoi<S[0]>();
-            if constexpr (index < 0) {
-                return next_impl(Vt::size() + index);
-            } else return next_impl(index);
-        }
-    }
 
-    constexpr auto index_impl(auto i) const requires(is_slice) {
+    constexpr auto& index_impl(auto i) const requires(is_slice) {
         constexpr auto e = detail::split<S[0], ':'>();
 
         static_assert(e.size() <= 2, "Error");
@@ -180,110 +322,6 @@ private:
             return next(index);
         }
     }
-public:
-
-    constexpr auto next(auto index) {
-        auto res = next_impl(index);
-        return std::is_const_v<decltype(res)> ? const_cast<std::remove_const_t<decltype(res)>>(res) : res;
-    }
-    constexpr auto next(auto index) const {
-        return next_impl(index);
-    }
-
-    constexpr auto next() const {
-        return next_impl();
-    }
-    constexpr auto next() {
-        if constexpr (!std::is_same_v<decltype(next_impl()), void>) {
-            return next_impl();
-        }
-    }
-
-    constexpr auto operator[](auto i) const requires(is_slice) {
-        return index_impl(i);
-    }
-
-    constexpr auto operator[](auto i) requires(is_slice) {
-        if constexpr (std::is_const_v<decltype(index_impl(0))>) {
-            return const_cast<std::remove_const_t<decltype(index_impl(0))>>(index_impl(i));
-        } else {
-            return index_impl(i);
-        }
-    }
-
-    size_t size() const requires(is_slice) {
-        constexpr auto e = detail::split<S[0], ':'>();
-        static_assert(e.size() <= 2, "Error");
-
-        if constexpr (e.size() == 0) { // [:]
-            return Vt::size();
-        } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
-            if constexpr (S[0][0] == ':') {
-                auto end = detail::stoi<e[0]>();
-                if (end < 0) {
-                    end = Vt::size() + end;
-                }
-                return Vt::size() - (Vt::size() - end);
-            } else {
-                auto start = detail::stoi<e[0]>();
-                if (start < 0) {
-                    start = Vt::size() + start;
-                }
-                return Vt::size() - start;
-            }
-        } else { // [A:B]
-            auto start = detail::stoi<e[0]>();
-            auto end = detail::stoi<e[1]>();
-            if (start < 0) {
-                start = Vt::size() + start;
-            }
-
-            if (end < 0) {
-                end = Vt::size() + end;
-            }
-
-            if (start >= end) return 0;
-            return end-start;
-        }
-    }
-
-
-    size_t size() const requires(!is_slice) {
-        return next().size();
-    }
-
-    auto operator[](auto i) requires(!is_slice) {
-        return next()[i];
-    }
-
-    template<typename T> struct Iterator {
-        T indexer;
-        size_t i = 0;
-        Iterator(T indexer, size_t start = 0) : indexer(indexer), i(start) { }
-
-        auto operator*() {
-            return indexer[i];
-        }
-        auto operator++() {
-            ++i;
-            return *this;
-        }
-        auto operator!=(const Iterator& other) {
-            return i != other.i;
-        }
-    };
-    auto begin() { return Iterator<Indexer&>(*this); }
-    auto end() { return Iterator<Indexer&>(*this, size()); }
-    auto begin() const { return Iterator<const Indexer&>(*this); }
-    auto end() const { return Iterator<const Indexer&>(*this, size()); }
-
-
-    constexpr operator auto() {
-        return next();
-    }
-    constexpr operator auto() const {
-        return next();
-    }
 };
 }; // namespace detail
 
@@ -295,11 +333,10 @@ template <auto N> consteval auto expr(char const (&cstr)[N]) {
 }
 
 
-template<auto s> constexpr auto pydex(detail::Pydexable auto& v) {
+template<auto s> auto& pydex(detail::Pydexable auto& v) {
     return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<s>(), ','>(), std::decay_t<decltype(v)>>&>(v);
 }
 };
-
 
 template<auto E, pydex::detail::Pydexable Vt> requires (pydex::detail::Indexer<E, Vt>::is_slice)
 std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& v) {
@@ -308,6 +345,9 @@ std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& 
         os << i << ", ";
     }
     os << "]";
+    if (v.dim > 0) {
+        os << std::endl;
+    }
 
     return os;
 }
