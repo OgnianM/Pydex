@@ -10,12 +10,13 @@ int main(int argc, char *argv[]) {
             {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}},
     };
 
+    std::cout << pydex::pydex<pydex::expr("0,1,2")>(data) << std::endl;
 
     pydex::pydex<pydex::expr(":, 1, :")>(data) = pydex::pydex<pydex::expr(":, 2, :")>(data);
     std::cout << pydex::pydex<pydex::expr(":, :, :")>(data) << std::endl;
 
     pydex::pydex<pydex::expr(":,:,:")>(data) = {69, 420, 1337};
-    std::cout << pydex::pydex<pydex::expr(":, :, :")>(data) << std::endl;
+    std::cout << pydex::pydex<pydex::expr("-1, :, :")>(data) << std::endl;
 
     return 0;
 }
