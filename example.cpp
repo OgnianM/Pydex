@@ -18,5 +18,19 @@ int main(int argc, char *argv[]) {
     pydex::pydex<pydex::expr(":,:,:")>(data) = {69, 420, 1337};
     std::cout << pydex::pydex<pydex::expr("-1, :, :")>(data) << std::endl;
 
+    std::array<std::array<int, 3>, 10> arr{
+            std::array<int, 3>{1, 2, 3},
+            std::array<int, 3>{4, 5, 6},
+            std::array<int, 3>{7, 8, 9},
+            std::array<int, 3>{10, 11, 12},
+            std::array<int, 3>{13, 14, 15},
+            std::array<int, 3>{16, 17, 18},
+            std::array<int, 3>{19, 20, 21},
+            std::array<int, 3>{22, 23, 24},
+            std::array<int, 3>{25, 26, 27},
+            std::array<int, 3>{28, 29, 30},
+    };
+    pydex::pydex<pydex::expr("4:,:1")>(arr) = std::array{100};
+    std::cout << pydex::pydex<pydex::expr(":, :")>(arr) << std::endl;
     return 0;
 }

@@ -138,14 +138,13 @@ consteval int dimensionality() {
 template<auto S, Pydexable Vt> requires(S.size() > 0)
 struct Indexer : Vt {
     static constexpr bool is_slice = detail::count(S[0], ':') == 1;
-    static constexpr int dim = detail::dimensionality<Indexer>();
+    static constexpr int dim = dimensionality<Indexer>();
 
-    Indexer& operator=(const auto& other) {
+    constexpr Indexer& operator=(const auto& other) {
         return operator_eq(other);
     }
 
-    template<typename T>
-    Indexer& operator=(const std::initializer_list<T>& init) {
+    template<typename T> constexpr Indexer& operator=(const std::initializer_list<T>& init) {
         return operator_eq(init);
     }
 
@@ -242,7 +241,7 @@ struct Indexer : Vt {
     auto end() const { return Iterator<const Indexer&>(*this, Indexer::size()); }
 
 private:
-    Indexer& operator_eq(const auto& other) {
+    constexpr Indexer& operator_eq(const auto& other) {
         constexpr int dims_this = dim;
         constexpr int dims_other = dimensionality<decltype(other)>();
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
@@ -339,7 +338,7 @@ template <auto N> consteval auto expr(char const (&cstr)[N]) {
 }
 
 
-template<auto s> auto& pydex(detail::Pydexable auto& v) {
+template<auto s> constexpr auto& pydex(detail::Pydexable auto& v) {
     return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<s>(), ','>(), std::decay_t<decltype(v)>>&>(v);
 }
 };
