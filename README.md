@@ -34,7 +34,6 @@ Assignment:
 ```cpp
 pydex::index<pydex::expr("1,2,3,-4")>(arr) = 5; // arr[1,2,3,-4] = 5
 pydex::index<pydex::expr("0:3")>(arr) = {3,4,5}; // arr[0:3] = [3,4,5]
-
 ```
 Assigning to a slice from another slice where both slices share the underlying container 
 and have overlapping elements is not safe if an element gets overwritten in the LHS slice before it is read in the RHS slice, e.g:

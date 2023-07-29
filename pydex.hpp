@@ -121,6 +121,9 @@ concept Pydexable = requires(T x) { x[x.size()]; };
 template<typename T>
 concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
 
+template<typename A, typename B>
+concept Assignable = requires(A a, B b) { a = b; };
+
 template<typename T> requires (!Pydexable<T> && !SizedIterable<T>)
 consteval int dimensionality() {
     return 0;
@@ -139,6 +142,8 @@ template<auto S, Pydexable Vt> requires(S.size() > 0)
 struct Indexer : Vt {
     static constexpr bool is_slice = count(S[0], ':') == 1;
     static constexpr int dim = dimensionality<Indexer>();
+
+    Indexer(const Indexer&) = delete;
 
     constexpr Indexer& operator=(const auto& other) {
         return operator_eq(other);
@@ -245,9 +250,14 @@ private:
         constexpr int dims_other = dimensionality<decltype(other)>();
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
 
+        if constexpr (Assignable<Vt, decltype(other)>) {
+            reinterpret_cast<Vt&>(*this) = other;
+            return *this;
+        }
+
         if constexpr (dims_other == dims_this) {
             if (size() < other.size()) {
-                throw std::runtime_error("Cannot assingn object of size " + std::to_string(other.size()) +
+                throw std::runtime_error("Cannot assign object of size " + std::to_string(other.size()) +
                                          " to object of size " + std::to_string(size()) + ".");
             }
             if constexpr (SizedIterable<decltype(other)>) {
