@@ -137,7 +137,7 @@ consteval int dimensionality() {
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
 struct Indexer : Vt {
-    static constexpr bool is_slice = detail::count(S[0], ':') == 1;
+    static constexpr bool is_slice = count(S[0], ':') == 1;
     static constexpr int dim = dimensionality<Indexer>();
 
     constexpr Indexer& operator=(const auto& other) {
@@ -149,12 +149,11 @@ struct Indexer : Vt {
     }
 
     constexpr auto& next(auto index) const {
-        auto& v = next_impl(index);
-        return v;
+        return next_impl(index);
     }
 
     constexpr auto& next() const requires(!is_slice) {
-        constexpr auto index = detail::stoi<S[0]>();
+        constexpr auto index = stoi<S[0]>();
         if constexpr (index < 0) {
             auto& k = reinterpret_cast<const Vt&>(*this);
             return next_impl(k.size() + index);
@@ -181,28 +180,28 @@ struct Indexer : Vt {
 
     constexpr size_t size() const {
         if constexpr(is_slice) {
-            constexpr auto e = detail::split<S[0], ':'>();
+            constexpr auto e = split<S[0], ':'>();
             static_assert(e.size() <= 2, "Error");
 
             if constexpr (e.size() == 0) { // [:]
                 return Vt::size();
             } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
                 if constexpr (S[0][0] == ':') {
-                    auto end = detail::stoi<e[0]>();
+                    auto end = stoi<e[0]>();
                     if (end < 0) {
                         end = Vt::size() + end;
                     }
                     return Vt::size() - (Vt::size() - end);
                 } else {
-                    auto start = detail::stoi<e[0]>();
+                    auto start = stoi<e[0]>();
                     if (start < 0) {
                         start = Vt::size() + start;
                     }
                     return Vt::size() - start;
                 }
             } else { // [A:B]
-                auto start = detail::stoi<e[0]>();
-                auto end = detail::stoi<e[1]>();
+                auto start = stoi<e[0]>();
+                auto end = stoi<e[1]>();
                 if (start < 0) {
                     start = Vt::size() + start;
                 }
@@ -224,14 +223,14 @@ struct Indexer : Vt {
         size_t i = 0;
         Iterator(T& indexer, size_t start = 0) : indexer(indexer), i(start) { }
 
-        auto operator*() {
+        auto& operator*() {
             return indexer[i];
         }
-        auto operator++() {
+        Iterator& operator++() {
             ++i;
             return *this;
         }
-        auto operator!=(const Iterator& other) {
+        bool operator!=(const Iterator& other) {
             return i != other.i;
         }
     };
@@ -253,7 +252,7 @@ private:
             }
             if constexpr (SizedIterable<decltype(other)>) {
                 int i = 0;
-                for (auto j : other) {
+                for (const auto& j : other) {
                     (*this)[i++] = j;
                 }
             } else {
@@ -276,8 +275,8 @@ private:
         if constexpr (S.size() == 1) {
             return k[index];
         } else {
-            auto& m = reinterpret_cast<const Indexer<detail::pop_front<S>(), std::decay_t<decltype(k[index])>>&>(k[index]);
-            if constexpr (detail::is_number<S[1]>()) {
+            auto& m = reinterpret_cast<const Indexer<pop_front<S>(), std::decay_t<decltype(k[index])>>&>(k[index]);
+            if constexpr (is_number<S[1]>()) {
                 return m.next();
             } else {
                 return m;
@@ -286,7 +285,7 @@ private:
     }
 
     constexpr auto& index_impl(auto i) const requires(is_slice) {
-        constexpr auto e = detail::split<S[0], ':'>();
+        constexpr auto e = split<S[0], ':'>();
 
         static_assert(e.size() <= 2, "Error");
 
@@ -294,7 +293,7 @@ private:
             return next(i);
         } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
             if constexpr (S[0][0] == ':') {
-                auto end = detail::stoi<e[0]>();
+                auto end = stoi<e[0]>();
                 if (end < 0) {
                     end = Vt::size() + end;
                 }
@@ -303,15 +302,15 @@ private:
                 }
                 return next(i);
             } else {
-                auto start = detail::stoi<e[0]>();
+                auto start = stoi<e[0]>();
                 if (start < 0) {
                     start = Vt::size() + start;
                 }
                 return next(i + start);
             }
         } else { // [A:B]
-            auto start = detail::stoi<e[0]>();
-            auto end = detail::stoi<e[1]>();
+            auto start = stoi<e[0]>();
+            auto end = stoi<e[1]>();
             if (start < 0) {
                 start = Vt::size() + start;
             }
@@ -346,7 +345,7 @@ template<auto s> constexpr auto& pydex(detail::Pydexable auto& v) {
 template<auto E, pydex::detail::Pydexable Vt> requires (pydex::detail::Indexer<E, Vt>::is_slice)
 std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& v) {
     os << "[";
-    for (auto i : v) {
+    for (const auto& i : v) {
         os << i << ", ";
     }
     os << "]";
@@ -359,6 +358,5 @@ std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& 
 
 template<auto E, pydex::detail::Pydexable Vt> requires (!pydex::detail::Indexer<E, Vt>::is_slice)
 std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& v) {
-    os << v.next();
-    return os;
+    return os << v.next();
 }
