@@ -71,3 +71,6 @@ x = arr[::2] #unsupported
 ```python
 x = arr[1, ...] #unsupported
 ```
+<h1> No runtime overhead</h1>
+
+![asm.png](asm.png)
