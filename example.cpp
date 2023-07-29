@@ -14,12 +14,12 @@ int main(int argc, char *argv[]) {
 
     auto data2 = data;
 
-    cout << pydex::pydex<pydex::expr("1, :, :")>(data) << endl << pydex::pydex<pydex::expr(":, :, 0")>(data) << endl;
-    pydex::pydex<pydex::expr(":, :, :")>(data2) = pydex::pydex<pydex::expr(":, :, 0")>(data);
-    std::cout << pydex::pydex<pydex::expr(":, :, :")>(data2) << std::endl;
+    cout << pydex::index<pydex::expr("1, :, :")>(data) << endl << pydex::index<pydex::expr(":, :, 0")>(data) << endl;
+    pydex::index<pydex::expr(":, :, :")>(data2) = pydex::index<pydex::expr(":, :, 0")>(data);
+    std::cout << pydex::index<pydex::expr(":, :, :")>(data2) << std::endl;
 
-    pydex::pydex<pydex::expr(":,:,:")>(data) = {69, 420, 1337};
-    std::cout << pydex::pydex<pydex::expr("-1, :, :")>(data) << std::endl;
+    pydex::index<pydex::expr(":,:,:")>(data) = {69, 420, 1337};
+    std::cout << pydex::index<pydex::expr("-1, :, :")>(data) << std::endl;
 
     std::array<std::array<int, 3>, 10> arr{
             std::array<int, 3>{1, 2, 3},
@@ -33,12 +33,16 @@ int main(int argc, char *argv[]) {
             std::array<int, 3>{25, 26, 27},
             std::array<int, 3>{28, 29, 30},
     };
-    pydex::pydex<pydex::expr("4:,:1")>(arr) = std::array{100};
-    std::cout << pydex::pydex<pydex::expr(":, :")>(arr) << std::endl;
+    pydex::index<pydex::expr("4:,:1")>(arr) = std::array{100};
+    std::cout << pydex::index<pydex::expr(":, :")>(arr) << std::endl;
 
     std::vector<std::string> vec{"Hello", "World", "!"};
-    pydex::pydex<pydex::expr("0")>(vec) = 'h';
-    std::cout << pydex::pydex<pydex::expr(":")>(vec) << std::endl;
+    pydex::index<pydex::expr("0")>(vec) = 'h';
+    std::cout << pydex::index<pydex::expr(":")>(vec) << std::endl;
+
+    std::vector<int> vec2{1, 2, 3, 4, 5};
+    pydex::index<pydex::expr("0:2")>(vec2) = pydex::index<pydex::expr("1:3")>(vec2);
+    std::cout << pydex::index<pydex::expr(":")>(vec2) << std::endl;
 
     return 0;
 }

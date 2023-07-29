@@ -337,7 +337,7 @@ template <auto N> consteval auto expr(char const (&cstr)[N]) {
 }
 
 
-template<auto s> constexpr auto& pydex(detail::Pydexable auto& v) {
+template<auto s> constexpr auto& index(detail::Pydexable auto& v) {
     return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<s>(), ','>(), std::decay_t<decltype(v)>>&>(v);
 }
 };
