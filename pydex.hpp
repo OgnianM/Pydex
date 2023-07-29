@@ -160,8 +160,7 @@ struct Indexer : Vt {
     constexpr auto& next() const requires(!is_slice) {
         constexpr auto index = stoi<S[0]>();
         if constexpr (index < 0) {
-            auto& k = reinterpret_cast<const Vt&>(*this);
-            return next_impl(k.size() + index);
+            return next_impl(decay().size() + index);
         } else return next_impl(index);
     }
 
@@ -244,6 +243,14 @@ struct Indexer : Vt {
     auto begin() const { return Iterator<const Indexer&>(*this); }
     auto end() const { return Iterator<const Indexer&>(*this, Indexer::size()); }
 
+    constexpr Vt& decay() {
+        return reinterpret_cast<Vt&>(*this);
+    }
+
+    constexpr const Vt& decay() const {
+        return reinterpret_cast<const Vt&>(*this);
+    }
+
 private:
     constexpr Indexer& operator_eq(const auto& other) {
         constexpr int dims_this = dim;
@@ -251,7 +258,7 @@ private:
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
 
         if constexpr (Assignable<Vt, decltype(other)>) {
-            reinterpret_cast<Vt&>(*this) = other;
+            decay() = other;
             return *this;
         }
 
@@ -280,7 +287,7 @@ private:
     }
 
     constexpr auto& next_impl(auto index) const {
-        auto& k = reinterpret_cast<const Vt&>(*this);
+        auto& k = decay();
 
         if constexpr (S.size() == 1) {
             return k[index];

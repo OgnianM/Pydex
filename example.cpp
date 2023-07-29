@@ -9,12 +9,10 @@ int main(int argc, char *argv[]) {
             {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}},
             {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}}
     };
-    using namespace std;
-
 
     auto data2 = data;
 
-    cout << pydex::index<pydex::expr("1, :, :")>(data) << endl << pydex::index<pydex::expr(":, :, 0")>(data) << endl;
+    std::cout << pydex::index<pydex::expr("1, :, :")>(data) << std::endl << pydex::index<pydex::expr(":, :, 0")>(data) << std::endl;
     pydex::index<pydex::expr(":, :, :")>(data2) = pydex::index<pydex::expr(":, :, 0")>(data);
     std::cout << pydex::index<pydex::expr(":, :, :")>(data2) << std::endl;
 
