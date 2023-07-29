@@ -20,12 +20,12 @@ Supported:
 
 Constant indexing:
 ```cpp
-constexpr auto x = pydex::index<pydex::expr("1,2,3,-4")>(arr); // x = arr[1,2,3,-4]
+auto x = pydex::index<pydex::expr("1,2,3,-4")>(arr); // x = arr[1,2,3,-4]
 ```
 
 Constant slicing:
 ```cpp
-constexpr auto x = pydex::index<pydex::expr("1:3, 3, :, -5:")>(arr); // x = arr[1:3, 3, :, -5:]
+auto x = pydex::index<pydex::expr("1:3, 3, :, -5:")>(arr); // x = arr[1:3, 3, :, -5:]
 // Prints arr[1, 3, 3, -5:]
 std::cout << x[0][3] << std::endl;
 ```
