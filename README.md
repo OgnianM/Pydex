@@ -57,9 +57,9 @@ std::cout << pydex::index<pydex::expr(":, 3")>(arr) << std::endl; // print(arr[:
 
 <h1> Unsupported </h1>
 
-Variable indexing:
+Variable slicing:
 ```python
-x = arr[a:b, c] #unsupported
+x = arr[a:b] #unsupported
 ```
 
 Steps:
