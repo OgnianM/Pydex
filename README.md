@@ -39,7 +39,7 @@ Assigning to a slice from another slice where both slices share the underlying c
 and have overlapping elements is not safe if an element gets overwritten in the LHS slice before it is read in the RHS slice, e.g:
 ```cpp    
 std::vector<int> vec{1, 2, 3, 4, 5};
-pydex::index<pydex::expr("1:3")>(vec2) = pydex::index<pydex::expr("0:2")>(vec); // Unsafe
+pydex::index<pydex::expr("1:3")>(vec) = pydex::index<pydex::expr("0:2")>(vec); // Unsafe
 // should print [1, 1, 2, 4, 5], actually prints [1, 1, 1, 4, 5]
 std::cout << pydex::index<pydex::expr(":")>(vec) << std::endl; 
 ```
