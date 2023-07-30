@@ -131,23 +131,23 @@ struct Indexer : Vt {
     static constexpr bool is_slice = colon_count > 0;
     static constexpr int dim = dimensionality<Indexer>();
     static constexpr auto tokenized = split<S[0], ':'>();
-    static constexpr int first_ = get_if_number<tokenized, 0, 0>();
-    static constexpr int last_ = get_if_number<tokenized, 1, -1>();
+    static constexpr int first = get_if_number<tokenized, 0, 0>();
+    static constexpr int last = get_if_number<tokenized, 1, -1>();
     static constexpr int step = get_if_number<tokenized, 2, 1>();
 
     static_assert(colon_count <= 2, "Too many colons");
     static_assert(step != 0, "Step cannot be 0");
 
     constexpr int get_last() const {
-        if constexpr (last_ < 0) {
-            return decay().size() + last_;
-        } else return last_;
+        if constexpr (last < 0) {
+            return decay().size() + last;
+        } else return last;
     }
 
     constexpr int get_first() const {
-        if constexpr (first_ < 0) {
-            return decay().size() + first_;
-        } else return first_;
+        if constexpr (first < 0) {
+            return decay().size() + first;
+        } else return first;
     }
 
     Indexer(const Indexer&) = delete;
@@ -292,7 +292,7 @@ private:
     }
 
     constexpr auto& index_impl(int i) const requires(is_slice) {
-        return next_impl(i*step + first_ - (step < 0));
+        return next_impl(i*step + first - (step < 0));
     }
 };
 }; // namespace detail
@@ -305,8 +305,8 @@ template <auto N> consteval auto expr(char const (&cstr)[N]) {
 }
 
 
-template<auto s> constexpr auto& index(detail::Pydexable auto& v) {
-    return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<s>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+template<auto S> constexpr auto& index(detail::Pydexable auto& v) {
+    return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
 }
 };
 

@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     std::array<int, 10> test {1,2,3,4,5,6,7,8,9,10};
 
     auto& e = pydex::index<pydex::expr("::3")>(test);
-    std::cout  << '\n' << e.first_ << '\n' << e.last_  << '\n' << e.step << '\n' << e.dim << std::endl;
+    std::cout << '\n' << e.first << '\n' << e.last << '\n' << e.step << '\n' << e.dim << std::endl;
 
 
     std::cout << e;
