@@ -30,6 +30,11 @@ auto& x = pydex::index<pydex::expr("1:3, 3, :, -5:")>(arr); // x = arr[1:3, 3, :
 std::cout << x[0][3] << std::endl;
 ```
 
+Steps:
+```cpp
+auto& x = pydex::index<pydex::expr("::2")>(arr); // Every other element in arr
+```
+
 Assignment:
 ```cpp
 pydex::index<pydex::expr("1,2,3,-4")>(arr) = 5; // arr[1,2,3,-4] = 5
@@ -37,7 +42,7 @@ pydex::index<pydex::expr("0:3")>(arr) = {3,4,5}; // arr[0:3] = [3,4,5]
 ```
 Assigning to a slice from another slice where both slices share the underlying container 
 and have overlapping elements is not safe if an element gets overwritten in the LHS slice before it is read in the RHS slice, e.g:
-```cpp    
+```cpp
 std::vector<int> vec{1, 2, 3, 4, 5};
 pydex::index<pydex::expr("1:3")>(vec) = pydex::index<pydex::expr("0:2")>(vec); // Unsafe
 // should print [1, 1, 2, 4, 5], actually prints [1, 1, 1, 4, 5]
@@ -61,12 +66,7 @@ Variable slicing:
 x = arr[a:b] #unsupported
 ```
 
-Steps:
-```python
-x = arr[::2] #unsupported
-```
-
-... operator
+Ellipsis:
 ```python
 x = arr[1, ...] #unsupported
 ```

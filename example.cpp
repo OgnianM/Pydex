@@ -12,6 +12,23 @@ int main(int argc, char *argv[]) {
 
     auto data2 = data;
 
+    std::array<int, 10> test {1,2,3,4,5,6,7,8,9,10};
+
+    auto& e = pydex::index<pydex::expr("::3")>(test);
+    std::cout  << '\n' << e.first_ << '\n' << e.last_  << '\n' << e.step << '\n' << e.dim << std::endl;
+
+
+    std::cout << e;
+
+    /*
+    std::cout << e.dim << std::endl;
+    e = std::vector {std::vector{1,20, 4, 444, 120}, {3,1,2,5,6,7}};
+
+    std::cout << pydex::index<pydex::expr(":, :, :")>(data) << std::endl;
+    */
+    /*
+    exit(0);
+
     std::cout << pydex::index<pydex::expr("1, :, :")>(data) << std::endl << pydex::index<pydex::expr(":, :, 0")>(data) << std::endl;
     pydex::index<pydex::expr(":, :, :")>(data2) = pydex::index<pydex::expr(":, :, 0")>(data);
     std::cout << pydex::index<pydex::expr(":, :, :")>(data2) << std::endl;
@@ -41,6 +58,6 @@ int main(int argc, char *argv[]) {
     std::vector<int> vec2{1, 2, 3, 4, 5};
     pydex::index<pydex::expr("0:2")>(vec2) = pydex::index<pydex::expr("1:3")>(vec2);
     std::cout << pydex::index<pydex::expr(":")>(vec2) << std::endl;
-
+*/
     return 0;
 }

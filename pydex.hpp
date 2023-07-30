@@ -21,7 +21,7 @@ template<auto S> consteval bool is_number() {
 
     for (int i = neg; i < n; ++i) {
         if (S[i] == '\0') {
-            return !(neg && i == 1);
+            return !(neg && i == 1) && i > 0;
         }
         if (S[i] < '0' || S[i] > '9') {
             return false;
@@ -121,6 +121,9 @@ concept Pydexable = requires(T x) { x[x.size()]; };
 template<typename T>
 concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
 
+template<typename T>
+concept Resizable = requires(T x) { x.resize(0); };
+
 template<typename A, typename B>
 concept Assignable = requires(A a, B b) { a = b; };
 
@@ -138,10 +141,41 @@ consteval int dimensionality() {
     return 1 + dimensionality<decltype(*std::declval<T>().begin())>();
 }
 
+template<auto S, int K, int Default>
+consteval int get_if_number() {
+    if constexpr (K < S.size()) {
+        if constexpr (S[K][0] == '\0') {
+            return Default;
+        } else return stoi<S[K]>();
+    } else {
+        return Default;
+    }
+}
+
 template<auto S, Pydexable Vt> requires(S.size() > 0)
-struct Indexer : Vt {
-    static constexpr bool is_slice = count(S[0], ':') == 1;
+struct Indexer : private Vt {
+    static constexpr int colon_count = count(S[0], ':');
+    static constexpr bool is_slice = colon_count > 0;
     static constexpr int dim = dimensionality<Indexer>();
+    static constexpr auto tokenized = split_impl<S[0], ':'>();
+    static constexpr int first_ = get_if_number<tokenized, 0, 0>();
+    static constexpr int last_ = get_if_number<tokenized, 1, -1>();
+    static constexpr int step = get_if_number<tokenized, 2, 1>();
+
+    static_assert(colon_count <= 2, "Too many colons");
+    static_assert(step != 0, "Step cannot be 0");
+
+    constexpr int get_last() const {
+        if constexpr (last_ < 0) {
+            return decay().size() + last_;
+        } else return last_;
+    }
+
+    constexpr int get_first() const {
+        if constexpr (first_ < 0) {
+            return decay().size() + first_;
+        } else return first_;
+    }
 
     Indexer(const Indexer&) = delete;
 
@@ -155,6 +189,11 @@ struct Indexer : Vt {
 
     constexpr auto& next(auto index) const {
         return next_impl(index);
+    }
+
+    constexpr auto& next(auto index) {
+        auto& v = next_impl(index);
+        return const_cast<std::decay_t<decltype(v)>&>(v);
     }
 
     constexpr auto& next() const requires(!is_slice) {
@@ -183,43 +222,9 @@ struct Indexer : Vt {
     }
 
     constexpr size_t size() const {
-        if constexpr(is_slice) {
-            constexpr auto e = split<S[0], ':'>();
-            static_assert(e.size() <= 2, "Error");
-
-            if constexpr (e.size() == 0) { // [:]
-                return Vt::size();
-            } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
-                if constexpr (S[0][0] == ':') {
-                    auto end = stoi<e[0]>();
-                    if (end < 0) {
-                        end = Vt::size() + end;
-                    }
-                    return Vt::size() - (Vt::size() - end);
-                } else {
-                    auto start = stoi<e[0]>();
-                    if (start < 0) {
-                        start = Vt::size() + start;
-                    }
-                    return Vt::size() - start;
-                }
-            } else { // [A:B]
-                auto start = stoi<e[0]>();
-                auto end = stoi<e[1]>();
-                if (start < 0) {
-                    start = Vt::size() + start;
-                }
-
-                if (end < 0) {
-                    end = Vt::size() + end;
-                }
-
-                if (start >= end) return 0;
-                return end - start;
-            }
-        } else {
-            return next().size();
-        }
+        if constexpr (is_slice) {
+            return (get_last() - get_first() + std::abs(step)) / std::abs(step);
+        } else return next().size();
     }
 
     template<typename T> struct Iterator {
@@ -257,15 +262,20 @@ private:
         constexpr int dims_other = dimensionality<decltype(other)>();
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
 
-        if constexpr (Assignable<Vt, decltype(other)>) {
-            decay() = other;
+        if constexpr (!is_slice) {
+            auto&v = next();
+            const_cast<std::decay_t<decltype(v)>&>(v) = other;
             return *this;
         }
 
+
         if constexpr (dims_other == dims_this) {
-            if (size() < other.size()) {
-                throw std::runtime_error("Cannot assign object of size " + std::to_string(other.size()) +
-                                         " to object of size " + std::to_string(size()) + ".");
+            if (size() != other.size()) {
+                if constexpr (Resizable<Vt>) {
+                    Vt::resize(other.size());
+                } else {
+                    throw std::runtime_error("Cannot assign to a non-resizable container of different size");
+                }
             }
             if constexpr (SizedIterable<decltype(other)>) {
                 int i = 0;
@@ -286,7 +296,14 @@ private:
         return *this;
     }
 
-    constexpr auto& next_impl(auto index) const {
+    constexpr auto& next_impl(int index) const {
+        if (index < 0) {
+            index = decay().size() + index;
+        }
+
+        if (index > get_last()) {
+            throw std::out_of_range("Index out of range");
+        }
         auto& k = decay();
 
         if constexpr (S.size() == 1) {
@@ -301,47 +318,8 @@ private:
         }
     }
 
-    constexpr auto& index_impl(auto i) const requires(is_slice) {
-        constexpr auto e = split<S[0], ':'>();
-
-        static_assert(e.size() <= 2, "Error");
-
-        if constexpr (e.size() == 0) { // [:]
-            return next(i);
-        } else if constexpr (e.size() == 1) { // Either [A:] or [:A]
-            if constexpr (S[0][0] == ':') {
-                auto end = stoi<e[0]>();
-                if (end < 0) {
-                    end = Vt::size() + end;
-                }
-                if (i >= end) {
-                    throw std::out_of_range("Index out of range");
-                }
-                return next(i);
-            } else {
-                auto start = stoi<e[0]>();
-                if (start < 0) {
-                    start = Vt::size() + start;
-                }
-                return next(i + start);
-            }
-        } else { // [A:B]
-            auto start = stoi<e[0]>();
-            auto end = stoi<e[1]>();
-            if (start < 0) {
-                start = Vt::size() + start;
-            }
-
-            if (end < 0) {
-                end = Vt::size() + end;
-            }
-            auto index = i + start;
-
-            if (index >= end) {
-                throw std::out_of_range("Index out of range");
-            }
-            return next(index);
-        }
+    constexpr auto& index_impl(int i) const requires(is_slice) {
+        return next_impl(i*step + first_ - (step < 0));
     }
 };
 }; // namespace detail
