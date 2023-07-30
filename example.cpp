@@ -4,7 +4,7 @@
 
 
 int main(int argc, char *argv[]) {
-    std::vector<std::vector<std::vector<int>>> data {
+     std::vector<std::vector<std::vector<int>>> data {
             {{1, 2, 3}, {4,5, 6}, {7, 8, 9}},
             {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}},
             {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}}
@@ -12,13 +12,18 @@ int main(int argc, char *argv[]) {
 
     auto data2 = data;
 
-    std::array<int, 10> test {1,2,3,4,5,6,7,8,9,10};
-
-    auto& e = pydex::index<pydex::expr("::3")>(test);
-    std::cout << '\n' << e.first << '\n' << e.last << '\n' << e.step << '\n' << e.dim << std::endl;
+    using namespace std;
+    std::vector<int> test {1,2,3,4,5,6,7,8,9,10};
 
 
-    std::cout << e;
+    std::array<int, 10> test2 {1,2,3,4,5,6,7,8,9,10};
+
+    auto d2 = pydex::copy(pydex::index<pydex::expr("::-1")>(test));
+
+
+    //cout << e.first << ' ' << e.last << ' ' << e.step << ' ' << e.dim << ' ' << e.is_ellipsis << endl;
+
+    std::cout << pydex::index<pydex::expr("...")>(d2);
 
     /*
     std::cout << e.dim << std::endl;

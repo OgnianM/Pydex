@@ -35,6 +35,11 @@ Steps:
 auto& x = pydex::index<pydex::expr("::2")>(arr); // Every other element in arr
 ```
 
+Ellipsis:
+```cpp
+auto& x = pydex::index<pydex::expr("..., 3")>(arr); // arr[..., 3]
+```
+
 Assignment:
 ```cpp
 pydex::index<pydex::expr("1,2,3,-4")>(arr) = 5; // arr[1,2,3,-4] = 5
@@ -66,10 +71,6 @@ Variable slicing:
 x = arr[a:b] #unsupported
 ```
 
-Ellipsis:
-```python
-x = arr[1, ...] #unsupported
-```
 <h1> No runtime overhead</h1>
 
 ![asm.png](asm.png)
