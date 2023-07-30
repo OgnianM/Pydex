@@ -53,30 +53,8 @@ template<auto S> consteval auto pop_front() {
     return arr;
 }
 
-
-template<auto S> consteval auto pop_back() {
-    std::array<std::decay_t<decltype(S[0])>, S.size() - 1> arr;
-    for (int i = 0; i < (S.size()-1); i++) {
-        arr[i] = S[i];
-    }
-    return arr;
-}
-
-template<auto S>
-consteval auto pop_back_if_empty() {
-    if constexpr (S.size() > 0) {
-        if constexpr (S[S.size() - 1][0] == '\0') {
-            return pop_back<S>();
-        } else {
-            return S;
-        }
-    } else {
-        return S;
-    }
-}
-
 template<auto S, char delim>
-consteval auto split_impl() {
+consteval auto split() {
     constexpr int n = S.size();
     constexpr int c = count(S, delim);
     std::array<std::array<char, n>, c+1> res{'\0'};
@@ -92,11 +70,6 @@ consteval auto split_impl() {
         res[j][k++] = S[i];
     }
     return res;
-}
-
-template<auto S, char delim>
-consteval auto split() {
-    return pop_back_if_empty<pop_back_if_empty<split_impl<S, delim>()>()>();
 }
 
 template<auto S>
@@ -153,11 +126,11 @@ consteval int get_if_number() {
 }
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
-struct Indexer : private Vt {
+struct Indexer : Vt {
     static constexpr int colon_count = count(S[0], ':');
     static constexpr bool is_slice = colon_count > 0;
     static constexpr int dim = dimensionality<Indexer>();
-    static constexpr auto tokenized = split_impl<S[0], ':'>();
+    static constexpr auto tokenized = split<S[0], ':'>();
     static constexpr int first_ = get_if_number<tokenized, 0, 0>();
     static constexpr int last_ = get_if_number<tokenized, 1, -1>();
     static constexpr int step = get_if_number<tokenized, 2, 1>();
