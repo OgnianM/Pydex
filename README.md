@@ -60,6 +60,21 @@ std::cout << pydex<":">(vec2) << std::endl;
 ```cpp
 std::cout << pydex<":, 3">(arr) << std::endl; // print(arr[:, 3])
 ```
+Irregular shapes:
+```cpp
+std::vector<std::vector<int>> data2 {
+       {1,2,3},
+       {1,2,3,4,5,6,7,8},
+       {9,10,11,12,13,14,15,16,17,18,19,20}
+};
+pydex<":,5">(data2)[0]; // throws std::out_of_range
+pydex<":,5">(data2)[1]; // 6
+pydex<":,5">(data2)[2]; // 14
+pydex<":,5">(data2)[-1]; // 14
+pydex<"199,5">(data2); // throws std::out_of_range
+pydex<"3, 88:1531">(data2) // Empty
+```
+
 
 <h1> Unsupported </h1>
 

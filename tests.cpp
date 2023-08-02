@@ -2,8 +2,6 @@
 #include <vector>
 #include <iostream>
 #include <numeric>
-#include <cassert>
-
 
 void check_equal(const auto& a, const auto& b) {
     auto& a_ = pydex<"...">(a);
@@ -15,7 +13,6 @@ void check_equal(const auto& a, const auto& b) {
         std::cerr << "First: " << a.first() << " Last: " << a.last() <<
                   " Step: " << a.step << " Size: " << a.size() << '\n';
     }
-
 }
 template<typename T>
 void check_equal(const auto& a, const std::initializer_list<T>& b) {
@@ -23,16 +20,7 @@ void check_equal(const auto& a, const std::initializer_list<T>& b) {
     return check_equal(a, v);
 }
 
-template <auto N> consteval auto expr(char const (&cstr)[N]) {
-    std::array<char, N-1> arr;
-    for (std::size_t i = 0; i < N-1; ++i)
-        arr[i] = cstr[i];
-    return arr;
-}
-
 int main(int argc, char *argv[]) {
-
-
     std::array<int, 10> arr;
     std::iota(arr.begin(), arr.end(), 0);
 
@@ -100,12 +88,17 @@ int main(int argc, char *argv[]) {
     int &scalar = pydex<"1,2,2">(data);
     std::cout << scalar << '\n';
 
-    assert(pydex<"2,2,2">(data) == 27);
+   pydex<"1,1,:1">(data) = {1,2,3,4,5,6};
 
 
-    auto& v = pydex<"1,1">(data);
+   std::vector<std::vector<int>> data2 {
+           {1,2,3},
+           {1,2,3,4,5,6,7,8},
+           {9,10,11,12,13,14,15,16,17,18,19,20}
+   };
+    //pydex<"2,::-2">(data2) = {2,3,4,5,6,7,8,9};
+    std::cout << pydex<"3, 1531">(data2) << '\n';
 
-    std::cout << pydex<"..., 1">(data) << '\n';
 
     std::cout << "All tests passed!\n";
     return 0;

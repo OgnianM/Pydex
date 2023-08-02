@@ -172,12 +172,17 @@ constexpr auto &deconst(const auto &x) {
     return const_cast<std::decay_t<decltype(x)> &>(x);
 }
 
+constexpr int clip(int x, int lo, int hi) {
+    return x < lo ? lo : (x > hi ? hi : x);
+}
+
 template<auto S, Pydexable Vt> requires(S.size() > 0)
 struct View : protected Vt {
     static constexpr int colon_count = count<S[0], ':'>();
     static constexpr bool is_ellipsis = S[0][0] == '.' && S[0][1] == '.' && S[0][2] == '.';
     static constexpr bool is_slice = colon_count > 0 || is_ellipsis;
     static constexpr int rank = dimensionality<Vt>();
+    static constexpr int dims = dimensionality<View>();
     static constexpr auto tokenized = split<S[0], ':'>();
     static constexpr int step = get_if_number<tokenized, 2, 1>();
 
@@ -190,9 +195,9 @@ struct View : protected Vt {
         constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
 
         if constexpr (first < 0) {
-            return int(Vt::size()) + first;
+            return clip(int(Vt::size()) + first, 0, Vt::size() - 1);
         } else {
-            return first;
+            return clip(first, 0, Vt::size());
         }
     }
 
@@ -208,9 +213,9 @@ struct View : protected Vt {
             }
         } else {
             if constexpr (last < 0) {
-                return int(Vt::size()) + last;
+                return clip(int(Vt::size()) + last, -1, Vt::size());
             }
-            return last;
+            return clip(last, -1, Vt::size());
         }
     }
 
@@ -283,19 +288,17 @@ struct View : protected Vt {
 
 private:
     constexpr auto &next(auto index) const { return next_impl(index); }
-
     constexpr auto &next(auto index) { return deconst(next_impl(index)); }
 
     constexpr View &assignment_impl(const auto &other) {
-        constexpr int dims_this = rank;
+        constexpr int dims_this = dims;
         using otherT = std::decay_t<decltype(other)>;
         constexpr int dims_other = dimensionality<otherT>();
         static_assert(dims_other <= dims_this,
                       "Cannot assign a higher dimensional object to a lower dimensional one");
-        static_assert(Pydexable<otherT> || SizedIterable<otherT>, "Source type must be indexable or iterable");
 
         if constexpr (!is_slice) {
-            deconst(next()) = other;
+            next() = other;
             return *this;
         } else if constexpr (dims_other == dims_this) {
             if (size() < other.size()) {
