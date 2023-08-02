@@ -105,6 +105,8 @@ int main(int argc, char *argv[]) {
 
     auto& v = pydex<"1,1">(data);
 
+    std::cout << pydex<"..., 1">(data) << '\n';
+
     std::cout << "All tests passed!\n";
     return 0;
 }

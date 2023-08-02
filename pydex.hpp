@@ -127,9 +127,6 @@ concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
 template<typename T>
 concept Resizable = requires(T x) { x.resize(0); };
 
-template<typename A, typename B>
-concept Assignable = requires(A a, B b) { a = b; };
-
 template<typename T>
 concept Decayable = requires(T x) { x.decay(); };
 
@@ -177,7 +174,7 @@ constexpr auto& deconst(const auto& x) {
 }
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
-struct Indexer :  Vt {
+struct View : protected Vt {
     static constexpr int colon_count = count<S[0], ':'>();
     static constexpr bool is_ellipsis = S[0][0] == '.' && S[0][1] == '.' && S[0][2] == '.';
     static constexpr bool is_slice = colon_count > 0 || is_ellipsis;
@@ -218,12 +215,11 @@ struct Indexer :  Vt {
         }
     }
 
-
-    Indexer(const Indexer& other) = delete;
-    constexpr Indexer& operator=(const auto& other) {
+    View(const View&) = delete;
+    constexpr View& operator=(const auto& other) {
         return assignment_impl(other);
     }
-    template<typename T> constexpr Indexer& operator=(const std::initializer_list<T>& init) {
+    template<typename T> constexpr View& operator=(const std::initializer_list<T>& init) {
         return assignment_impl(init);
     }
 
@@ -274,16 +270,16 @@ struct Indexer :  Vt {
             return i != other.i;
         }
     };
-    auto begin() { return Iterator<Indexer&>(*this); }
-    auto end() { return Iterator<Indexer&>(*this, Indexer::size()); }
-    auto begin() const { return Iterator<const Indexer&>(*this); }
-    auto end() const { return Iterator<const Indexer&>(*this, Indexer::size()); }
+    auto begin() { return Iterator<View&>(*this); }
+    auto end() { return Iterator<View&>(*this, View::size()); }
+    auto begin() const { return Iterator<const View&>(*this); }
+    auto end() const { return Iterator<const View&>(*this, View::size()); }
 
 private:
     constexpr auto& next(auto index) const { return next_impl(index); }
     constexpr auto& next(auto index) { return deconst(next_impl(index)); }
 
-    constexpr Indexer& assignment_impl(const auto& other) {
+    constexpr View& assignment_impl(const auto& other) {
         constexpr int dims_this = rank;
         using otherT = std::decay_t<decltype(other)>;
         constexpr int dims_other = dimensionality<otherT>();
@@ -354,15 +350,15 @@ private:
 
         if constexpr (S.size() == 1) {
             if constexpr (is_ellipsis && rank > 1) {
-                return reinterpret_cast<const Indexer<S, std::decay_t<decltype(k[index])>>&>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>>&>(k[index]);
             } else {
                 return k[index];
             }
         } else {
             if constexpr (is_ellipsis && rank > S.size()) {
-                return reinterpret_cast<const Indexer<S, std::decay_t<decltype(k[index])>>&>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>>&>(k[index]);
             } else {
-                auto &m = reinterpret_cast<const Indexer<pop_front<S>(), std::decay_t<decltype(k[index])>> &>(k[index]);
+                auto &m = reinterpret_cast<const View<pop_front<S>(), std::decay_t<decltype(k[index])>> &>(k[index]);
                 if constexpr (is_number<S[1]>()) {
                     return m.next();
                 } else {
@@ -392,7 +388,7 @@ template<auto N> struct Expression : std::array<char, N-1> {
 
 template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pydexable auto& v) {
     using namespace pydex_::detail;
-    auto& t = reinterpret_cast<Indexer<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+    auto& t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -402,7 +398,7 @@ template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pyd
 
 template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detail::Pydexable auto& v) {
     using namespace pydex_::detail;
-    auto& t = reinterpret_cast<const Indexer<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
+    auto& t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -422,7 +418,7 @@ constexpr auto copy(const auto& v) {
 };
 
 template<auto E, pydex_::detail::Pydexable Vt>
-std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>& v) {
+std::ostream& operator<<(std::ostream& os, const pydex_::detail::View<E, Vt>& v) {
     os << "{";
     for (int j = 0; j < v.size(); j++) {
         auto& i = v[j];
@@ -430,7 +426,7 @@ std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>&
         if (j == v.size() - 1) {
             break;
         }
-        if constexpr (pydex_::detail::Indexer<E, Vt>::rank == 1) {
+        if constexpr (pydex_::detail::View<E, Vt>::rank == 1) {
             os << ", ";
         } else {
             os << std::endl;
