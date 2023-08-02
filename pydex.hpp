@@ -432,7 +432,7 @@ template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detai
 
 
 namespace pydex_ {
-/// @return a deep copy of the given object
+/// @return a deep copy of the given object with the same type
 constexpr auto copy(const auto& v) {
     auto& a = pydex<"...">(v);
     std::decay_t<decltype(a.decay())> b;
@@ -443,7 +443,7 @@ constexpr auto copy(const auto& v) {
 
 template<auto E, pydex_::detail::Pydexable Vt>
 std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>& v) {
-    os << "[";
+    os << "{";
     for (int j = 0; j < v.size(); j++) {
         auto& i = v[j];
         os << i;
@@ -456,8 +456,7 @@ std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>&
             os << std::endl;
         }
     }
-    os << "]";
-
+    os << "},";
     if (v.rank > 1) {
         os << std::endl;
     }
