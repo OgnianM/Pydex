@@ -17,7 +17,7 @@
 #include <array>
 #include <ostream>
 
-namespace pydex {
+namespace pydex_ {
 namespace detail {
 
 template<auto S>
@@ -413,30 +413,31 @@ template<auto N> struct Expression : std::array<char, N-1> {
 };
 }; // namespace detail
 
-template<detail::Expression S> constexpr auto& index(detail::Pydexable auto& v) {
-    return reinterpret_cast<detail::Indexer<detail::split<detail::sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
-}
-template<detail::Expression S> constexpr auto& index(const detail::Pydexable auto& v) {
-    return reinterpret_cast<const detail::Indexer<detail::split<detail::sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
-}
-
 /// @return a deep copy of the given object
 template<bool reduce_rank = true>
 constexpr auto copy(const auto& v) {
-    auto& a = pydex::index<"...">(v);
+    auto& a = index<"...">(v);
     if constexpr(reduce_rank && !v.is_slice) {
         return copy(v.next());
     } else {
         std::decay_t<decltype(a.decay())> b;
-        pydex::index<"...">(b) = a;
+        index<"...">(b) = a;
         return b;
     }
 }
-
 };
 
-template<auto E, pydex::detail::Pydexable Vt>
-std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& v) {
+template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pydexable auto& v) {
+    using namespace pydex_::detail;
+    return reinterpret_cast<Indexer<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+}
+
+template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detail::Pydexable auto& v) {
+    using namespace pydex_::detail;
+    return reinterpret_cast<const Indexer<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
+}
+template<auto E, pydex_::detail::Pydexable Vt>
+std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>& v) {
     os << "[";
     for (int j = 0; j < v.size(); j++) {
         auto& i = v[j];
@@ -444,7 +445,7 @@ std::ostream& operator<<(std::ostream& os, const pydex::detail::Indexer<E, Vt>& 
         if (j == v.size() - 1) {
             break;
         }
-        if constexpr (pydex::detail::Indexer<E, Vt>::rank == 1) {
+        if constexpr (pydex_::detail::Indexer<E, Vt>::rank == 1) {
             os << ", ";
         } else {
             os << std::endl;
