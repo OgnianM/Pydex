@@ -14,6 +14,7 @@
     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
+
 #include <array>
 #include <ostream>
 
@@ -23,22 +24,23 @@ namespace detail {
 template<auto S>
 consteval int size() {
     int s = 0;
-    for(int i = 0; i < S.size(); i++, s++) {
+    for (int i = 0; i < S.size(); i++, s++) {
         if (S[i] == '\0') break;
     }
     return s;
 }
 
-template<auto S, char C, int N=0>
+template<auto S, char C, int N = 0>
 consteval int count() {
-    if constexpr(size<S>() == N) {
+    if constexpr (size<S>() == N) {
         return 0;
     } else {
-        return (S[N] == C) + count<S, C, N+1>();
+        return (S[N] == C) + count<S, C, N + 1>();
     }
 }
 
-template<auto S> consteval bool is_number() {
+template<auto S>
+consteval bool is_number() {
     constexpr int n = S.size();
     if (n == 0) {
         return false;
@@ -61,7 +63,8 @@ template<auto S> consteval bool is_number() {
     return true;
 }
 
-template<auto S> consteval int stoi() {
+template<auto S>
+consteval int stoi() {
     static_assert(is_number<S>(), "Not a number");
     int res = 0;
     constexpr bool neg = S[0] == '-';
@@ -75,10 +78,11 @@ template<auto S> consteval int stoi() {
     return neg ? -res : res;
 }
 
-template<auto S> consteval auto pop_front() {
+template<auto S>
+consteval auto pop_front() {
     std::array<std::decay_t<decltype(S[0])>, S.size() - 1> arr;
     for (int i = 1; i < S.size(); i++) {
-        arr[i-1] = S[i];
+        arr[i - 1] = S[i];
     }
     return arr;
 }
@@ -87,7 +91,7 @@ template<auto S, char delim>
 consteval auto split() {
     constexpr int n = size<S>();
     constexpr int c = count<S, delim>();
-    std::array<std::array<char, n>, c+1> res{'\0'};
+    std::array<std::array<char, n>, c + 1> res{'\0'};
     int i = 0;
     int j = 0;
     int k = 0;
@@ -105,7 +109,7 @@ consteval auto split() {
 template<auto S>
 consteval auto sanitize() {
     constexpr int n = size<S>();
-    std::array<char, n-count<S, ' '>() - count<S, '\0'>()> res;
+    std::array<char, n - count<S, ' '>() - count<S, '\0'>()> res;
     int i = 0;
     int j = 0;
     for (; i < n; ++i) {
@@ -118,36 +122,31 @@ consteval auto sanitize() {
     return res;
 }
 
-template<typename T>
-concept Pydexable = requires(T x) { x[x.size()]; };
+template<typename T> concept Pydexable = requires(T x) { x[x.size()]; };
+
+template<typename T> concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
+
+template<typename T> concept Resizable = requires(T x) { x.resize(0); };
+
+template<typename T> concept Decayable = requires(T x) { x.decay(); };
 
 template<typename T>
-concept SizedIterable = requires(T x) { x.size(); x.begin(); x.end(); };
-
-template<typename T>
-concept Resizable = requires(T x) { x.resize(0); };
-
-template<typename T>
-concept Decayable = requires(T x) { x.decay(); };
-
-template<typename T> requires (!Pydexable<T> && !SizedIterable<T>)
+requires (!Pydexable<T> && !SizedIterable<T>)
 consteval int dimensionality() {
     return 0;
 }
-template<typename T> requires (Pydexable<T>)
+
+template<typename T>
+requires (Pydexable<T>)
 consteval int dimensionality() {
     return 1 + dimensionality<decltype(std::declval<T>()[0])>();
 }
 
-template<typename T> requires (!Pydexable<T> && SizedIterable<T>)
+template<typename T>
+requires (!Pydexable<T> && SizedIterable<T>)
 consteval int dimensionality() {
     return 1 + dimensionality<decltype(*std::declval<T>().begin())>();
 }
-
-template<typename T> requires (Pydexable<T>)
-struct FundamentalType {
-    using t = FundamentalType<decltype(std::declval<T>()[0])>;
-};
 
 template<auto S, int K, auto Default>
 consteval auto get_if_number() {
@@ -169,8 +168,8 @@ consteval int ellipsis_count() {
     return count;
 }
 
-constexpr auto& deconst(const auto& x) {
-    return const_cast<std::decay_t<decltype(x)>&>(x);
+constexpr auto &deconst(const auto &x) {
+    return const_cast<std::decay_t<decltype(x)> &>(x);
 }
 
 template<auto S, Pydexable Vt> requires(S.size() > 0)
@@ -188,7 +187,7 @@ struct View : protected Vt {
     static_assert(ellipsis_count<S>() <= 1, "Cannot have more than one ellipsis.");
 
     [[nodiscard]] constexpr int first() const {
-         constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
+        constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
 
         if constexpr (first < 0) {
             return int(Vt::size()) + first;
@@ -215,15 +214,18 @@ struct View : protected Vt {
         }
     }
 
-    View(const View&) = delete;
-    constexpr View& operator=(const auto& other) {
+    View(const View &) = delete;
+
+    constexpr View &operator=(const auto &other) {
         return assignment_impl(other);
     }
-    template<typename T> constexpr View& operator=(const std::initializer_list<T>& init) {
+
+    template<typename T>
+    constexpr View &operator=(const std::initializer_list<T> &init) {
         return assignment_impl(init);
     }
 
-    constexpr bool operator==(const Pydexable auto& other) const {
+    constexpr bool operator==(const Pydexable auto &other) const {
         if constexpr (rank != dimensionality<decltype(other)>()) {
             return false;
         }
@@ -245,45 +247,55 @@ struct View : protected Vt {
         }
     }
 
-    constexpr auto& operator[](auto i) const { return index_impl(i); }
-    constexpr auto& operator[](auto i) { return deconst(index_impl(i)); }
+    constexpr auto &operator[](auto i) const { return index_impl(i); }
+    constexpr auto &operator[](auto i) { return deconst(index_impl(i)); }
 
-    constexpr auto& decay() const { return decay_impl(); }
-    constexpr auto& decay() { return deconst(decay_impl()); }
+    constexpr auto &decay() const { return decay_impl(); }
+    constexpr auto &decay() { return deconst(decay_impl()); }
 
-    constexpr auto& next() const requires(!is_slice) { return next_impl(); }
-    constexpr auto& next() requires(!is_slice) { return deconst(next_impl()); }
+    constexpr auto &next() const requires(!is_slice) { return next_impl(); }
+    constexpr auto &next() requires(!is_slice) { return deconst(next_impl()); }
 
-    template<typename T> struct Iterator {
-        T& indexer;
+    template<typename T>
+    struct Iterator {
+        T &indexer;
         size_t i = 0;
-        Iterator(T& indexer, size_t start = 0) : indexer(indexer), i(start) { }
 
-        auto& operator*() {
+        Iterator(T &indexer, size_t start = 0) : indexer(indexer), i(start) {}
+
+        auto &operator*() {
             return indexer[i];
         }
-        Iterator& operator++() {
+
+        Iterator &operator++() {
             ++i;
             return *this;
         }
-        bool operator!=(const Iterator& other) {
+
+        bool operator!=(const Iterator &other) {
             return i != other.i;
         }
     };
-    auto begin() { return Iterator<View&>(*this); }
-    auto end() { return Iterator<View&>(*this, View::size()); }
-    auto begin() const { return Iterator<const View&>(*this); }
-    auto end() const { return Iterator<const View&>(*this, View::size()); }
+
+    auto begin() { return Iterator<View &>(*this); }
+
+    auto end() { return Iterator<View &>(*this, View::size()); }
+
+    auto begin() const { return Iterator<const View &>(*this); }
+
+    auto end() const { return Iterator<const View &>(*this, View::size()); }
 
 private:
-    constexpr auto& next(auto index) const { return next_impl(index); }
-    constexpr auto& next(auto index) { return deconst(next_impl(index)); }
+    constexpr auto &next(auto index) const { return next_impl(index); }
 
-    constexpr View& assignment_impl(const auto& other) {
+    constexpr auto &next(auto index) { return deconst(next_impl(index)); }
+
+    constexpr View &assignment_impl(const auto &other) {
         constexpr int dims_this = rank;
         using otherT = std::decay_t<decltype(other)>;
         constexpr int dims_other = dimensionality<otherT>();
-        static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
+        static_assert(dims_other <= dims_this,
+                      "Cannot assign a higher dimensional object to a lower dimensional one");
         static_assert(Pydexable<otherT> || SizedIterable<otherT>, "Source type must be indexable or iterable");
 
         if constexpr (!is_slice) {
@@ -320,25 +332,26 @@ private:
         return *this;
     }
 
-    constexpr auto& decay_once() const {
-        return reinterpret_cast<const Vt&>(*this);
+    constexpr auto &decay_once() const {
+        return reinterpret_cast<const Vt &>(*this);
     }
 
-    template<typename T = Vt> constexpr auto& decay_impl() const {
-        auto& v = decay_once();
+    template<typename T = Vt>
+    constexpr auto &decay_impl() const {
+        auto &v = decay_once();
         if constexpr (Decayable<T>) {
             return v.decay();
         } else return v;
     }
 
-    constexpr auto& next_impl() const requires(!is_slice) {
+    constexpr auto &next_impl() const requires(!is_slice) {
         constexpr auto index = stoi<S[0]>();
         if constexpr (index < 0) {
             return next_impl(Vt::size() + index);
         } else return next_impl(index);
     }
 
-    constexpr auto& next_impl(int index) const {
+    constexpr auto &next_impl(int index) const {
         if (index < 0) {
             index = Vt::size() + index;
         }
@@ -346,17 +359,17 @@ private:
         if (index >= Vt::size() || index < 0) {
             throw std::out_of_range("Index out of range");
         }
-        auto& k = decay_once();
+        auto &k = decay_once();
 
         if constexpr (S.size() == 1) {
             if constexpr (is_ellipsis && rank > 1) {
-                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>>&>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>> &>(k[index]);
             } else {
                 return k[index];
             }
         } else {
             if constexpr (is_ellipsis && rank > S.size()) {
-                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>>&>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>> &>(k[index]);
             } else {
                 auto &m = reinterpret_cast<const View<pop_front<S>(), std::decay_t<decltype(k[index])>> &>(k[index]);
                 if constexpr (is_number<S[1]>()) {
@@ -368,7 +381,7 @@ private:
         }
     }
 
-    constexpr auto& index_impl(int i) const {
+    constexpr auto &index_impl(int i) const {
         if constexpr (is_slice) {
             return next_impl(first() + i * step);
         } else {
@@ -377,18 +390,20 @@ private:
     }
 };
 
-template<auto N> struct Expression : std::array<char, N-1> {
+template<auto N>
+struct Expression : std::array<char, N - 1> {
     consteval Expression(const char (&cstr)[N]) {
-        for (std::size_t i = 0; i < N-1; ++i)
+        for (std::size_t i = 0; i < N - 1; ++i)
             (*this)[i] = cstr[i];
     }
 };
 }; // namespace detail
 };
 
-template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pydexable auto& v) {
+template<pydex_::detail::Expression S>
+constexpr auto &pydex(pydex_::detail::Pydexable auto &v) {
     using namespace pydex_::detail;
-    auto& t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+    auto &t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -396,9 +411,10 @@ template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pyd
     }
 }
 
-template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detail::Pydexable auto& v) {
+template<pydex_::detail::Expression S>
+constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
     using namespace pydex_::detail;
-    auto& t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
+    auto &t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -409,19 +425,19 @@ template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detai
 
 namespace pydex_ {
 /// @return a deep copy of the given object with the same type
-constexpr auto copy(const auto& v) {
-    auto& a = pydex<"...">(v);
-    std::decay_t<decltype(a.decay())> b;
-    pydex<"...">(b) = a;
-    return b;
-}
+    constexpr auto copy(const auto &v) {
+        auto &a = pydex<"...">(v);
+        std::decay_t<decltype(a.decay())> b;
+        pydex<"...">(b) = a;
+        return b;
+    }
 };
 
 template<auto E, pydex_::detail::Pydexable Vt>
-std::ostream& operator<<(std::ostream& os, const pydex_::detail::View<E, Vt>& v) {
+std::ostream &operator<<(std::ostream &os, const pydex_::detail::View<E, Vt> &v) {
     os << "{";
     for (int j = 0; j < v.size(); j++) {
-        auto& i = v[j];
+        auto &i = v[j];
         os << i;
         if (j == v.size() - 1) {
             break;
