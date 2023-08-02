@@ -421,12 +421,12 @@ constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
 
 namespace pydex_ {
 /// @return a deep copy of the given object with the same type
-    constexpr auto copy(const auto &v) {
-        auto &a = pydex<"...">(v);
-        std::decay_t<decltype(a.decay())> b;
-        pydex<"...">(b) = a;
-        return b;
-    }
+constexpr auto copy(const auto &v) {
+    auto &a = pydex<"...">(v);
+    std::decay_t<decltype(a.decay())> b;
+    pydex<"...">(b) = a;
+    return b;
+}
 };
 
 template<auto E, pydex_::detail::Pydexable Vt>
