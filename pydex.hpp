@@ -190,13 +190,6 @@ struct Indexer :  Vt {
     static_assert(S.size() <= rank, "Too many indices");
     static_assert(ellipsis_count<S>() <= 1, "Cannot have more than one ellipsis.");
 
-
-    static constexpr auto E = S;
-
-    size_t underlying_size() const {
-        return Vt::size();
-    }
-
     [[nodiscard]] constexpr int first() const {
          constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
 
@@ -245,17 +238,6 @@ struct Indexer :  Vt {
         return true;
     }
 
-    [[nodiscard]] constexpr size_t total() {
-        if constexpr (rank == 1) {
-            return size();
-        } else {
-            size_t res = 0;
-            for (int i = 0; i < rank; i++) {
-                res += (*this)[i].total();
-            }
-            return res;
-        }
-    }
     [[nodiscard]] constexpr size_t size() const {
         if constexpr (is_slice) {
             auto s = (last() - first());
@@ -267,13 +249,14 @@ struct Indexer :  Vt {
         }
     }
 
-    constexpr auto &operator[](auto i) const {
-        return index_impl(i);
-    }
+    constexpr auto& operator[](auto i) const { return index_impl(i); }
+    constexpr auto& operator[](auto i) { return deconst(index_impl(i)); }
 
-    constexpr auto& operator[](auto i) {
-        return deconst(index_impl(i));
-    }
+    constexpr auto& decay() const { return decay_impl(); }
+    constexpr auto& decay() { return deconst(decay_impl()); }
+
+    constexpr auto& next() const requires(!is_slice) { return next_impl(); }
+    constexpr auto& next() requires(!is_slice) { return deconst(next_impl()); }
 
     template<typename T> struct Iterator {
         T& indexer;
@@ -296,29 +279,9 @@ struct Indexer :  Vt {
     auto begin() const { return Iterator<const Indexer&>(*this); }
     auto end() const { return Iterator<const Indexer&>(*this, Indexer::size()); }
 
-    constexpr const auto& decay() const {
-        return decay_impl();
-    }
-
-    constexpr auto& decay() {
-        return deconst(decay_impl());
-    }
-
-    constexpr auto& next() const requires(!is_slice) {
-        constexpr auto index = stoi<S[0]>();
-        if constexpr (index < 0) {
-            return next_impl(Vt::size() + index);
-        } else return next_impl(index);
-    }
-
 private:
-    constexpr auto& next(auto index) const {
-        return next_impl(index);
-    }
-
-    constexpr auto& next(auto index) {
-        return deconst(next_impl(index));
-    }
+    constexpr auto& next(auto index) const { return next_impl(index); }
+    constexpr auto& next(auto index) { return deconst(next_impl(index)); }
 
     constexpr Indexer& assignment_impl(const auto& other) {
         constexpr int dims_this = rank;
@@ -372,6 +335,13 @@ private:
         } else return v;
     }
 
+    constexpr auto& next_impl() const requires(!is_slice) {
+        constexpr auto index = stoi<S[0]>();
+        if constexpr (index < 0) {
+            return next_impl(Vt::size() + index);
+        } else return next_impl(index);
+    }
+
     constexpr auto& next_impl(int index) const {
         if (index < 0) {
             index = Vt::size() + index;
@@ -422,12 +392,22 @@ template<auto N> struct Expression : std::array<char, N-1> {
 
 template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pydexable auto& v) {
     using namespace pydex_::detail;
-    return reinterpret_cast<Indexer<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+    auto& t = reinterpret_cast<Indexer<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>>&>(v);
+    if constexpr (!std::decay_t<decltype(t)>::is_slice) {
+        return t.next();
+    } else {
+        return t;
+    }
 }
 
 template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detail::Pydexable auto& v) {
     using namespace pydex_::detail;
-    return reinterpret_cast<const Indexer<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
+    auto& t = reinterpret_cast<const Indexer<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
+    if constexpr (!std::decay_t<decltype(t)>::is_slice) {
+        return t.next();
+    } else {
+        return t;
+    }
 }
 
 

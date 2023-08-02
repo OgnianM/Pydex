@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <numeric>
+#include <cassert>
 
 
 void check_equal(const auto& a, const auto& b) {
@@ -12,7 +13,7 @@ void check_equal(const auto& a, const auto& b) {
         std::cerr << "Assertion failed: " << a_ << " != " << b_ << std::endl;
 
         std::cerr << "First: " << a.first() << " Last: " << a.last() <<
-                  " Step: " << a.step << " Size: " << a.size() << " Underlying size: " << a.underlying_size() << '\n';
+                  " Step: " << a.step << " Size: " << a.size() << '\n';
     }
 
 }
@@ -95,5 +96,15 @@ int main(int argc, char *argv[]) {
 
     auto c = pydex_::copy(pydex<"::-1,1::-1,1">(data));
     std::cout << pydex<"...">(c) << '\n';
+
+    int &scalar = pydex<"1,2,2">(data);
+    std::cout << scalar << '\n';
+
+    assert(pydex<"2,2,2">(data) == 27);
+
+
+    auto& v = pydex<"1,1">(data);
+
+    std::cout << "All tests passed!\n";
     return 0;
 }
