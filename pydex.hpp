@@ -276,13 +276,9 @@ struct View : protected Vt {
             return i != other.i;
         }
     };
-
     auto begin() { return Iterator<View &>(*this); }
-
     auto end() { return Iterator<View &>(*this, View::size()); }
-
     auto begin() const { return Iterator<const View &>(*this); }
-
     auto end() const { return Iterator<const View &>(*this, View::size()); }
 
 private:
