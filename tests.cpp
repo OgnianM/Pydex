@@ -92,5 +92,8 @@ int main(int argc, char *argv[]) {
                                         {5, 2, },
                 }
     );
+
+    auto c = pydex_::copy(pydex<"::-1,1::-1,1">(data));
+    std::cout << pydex<"...">(c) << '\n';
     return 0;
 }

@@ -322,8 +322,10 @@ private:
 
     constexpr Indexer& assignment_impl(const auto& other) {
         constexpr int dims_this = rank;
-        constexpr int dims_other = dimensionality<decltype(other)>();
+        using otherT = std::decay_t<decltype(other)>;
+        constexpr int dims_other = dimensionality<otherT>();
         static_assert(dims_other <= dims_this, "Cannot assign a higher dimensional object to a lower dimensional one");
+        static_assert(Pydexable<otherT> || SizedIterable<otherT>, "Source type must be indexable or iterable");
 
         if constexpr (!is_slice) {
             deconst(next()) = other;
@@ -336,18 +338,22 @@ private:
                     throw std::runtime_error("Cannot assign to a smaller non-resizable container");
                 }
             }
-            if constexpr (SizedIterable<decltype(other)>) {
-                int i = 0;
-                for (const auto& j : other) {
-                    (*this)[i++] = j;
-                }
-            } else {
+            if constexpr (Pydexable<decltype(other)>) {
                 for (int i = 0; i < other.size(); ++i) {
                     (*this)[i] = other[i];
+                }
+
+            } else {
+                int i = 0;
+                for (const auto &j: other) {
+                    (*this)[i++] = j;
                 }
             }
 
         } else if constexpr (dims_other <= dims_this) {
+            if (this->size() == 0) {
+                Vt::resize(1);
+            }
             for (int i = 0; i < size(); ++i) {
                 (*this)[i] = other;
             }
@@ -412,19 +418,6 @@ template<auto N> struct Expression : std::array<char, N-1> {
     }
 };
 }; // namespace detail
-
-/// @return a deep copy of the given object
-template<bool reduce_rank = true>
-constexpr auto copy(const auto& v) {
-    auto& a = index<"...">(v);
-    if constexpr(reduce_rank && !v.is_slice) {
-        return copy(v.next());
-    } else {
-        std::decay_t<decltype(a.decay())> b;
-        index<"...">(b) = a;
-        return b;
-    }
-}
 };
 
 template<pydex_::detail::Expression S> constexpr auto& pydex(pydex_::detail::Pydexable auto& v) {
@@ -436,6 +429,18 @@ template<pydex_::detail::Expression S> constexpr auto& pydex(const pydex_::detai
     using namespace pydex_::detail;
     return reinterpret_cast<const Indexer<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>>&>(v);
 }
+
+
+namespace pydex_ {
+/// @return a deep copy of the given object
+constexpr auto copy(const auto& v) {
+    auto& a = pydex<"...">(v);
+    std::decay_t<decltype(a.decay())> b;
+    pydex<"...">(b) = a;
+    return b;
+}
+};
+
 template<auto E, pydex_::detail::Pydexable Vt>
 std::ostream& operator<<(std::ostream& os, const pydex_::detail::Indexer<E, Vt>& v) {
     os << "[";
