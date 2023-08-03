@@ -52,7 +52,7 @@ std::cout << pydex<":">(vec) << std::endl;
 ```
 ```cpp
 std::vector<int> vec2{1, 2, 3, 4, 5};
-pydex<"0:2">(vec2) = pydex<"1:3")>(vec2); // Safe
+pydex<"0:2">(vec2) = pydex<"1:3">(vec2); // Safe
 // prints [2, 3, 3, 4, 5]
 std::cout << pydex<":">(vec2) << std::endl;
 ```
