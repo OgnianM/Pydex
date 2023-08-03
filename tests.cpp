@@ -2,21 +2,75 @@
 #include <vector>
 #include <iostream>
 #include <numeric>
+#include <chrono>
 
-void check_equal(const auto& a, const auto& b) {
-    auto& a_ = pydex<"...">(a);
-    auto& b_ = pydex<"...">(b);
+
+void matmul(const auto& A, const auto& B, auto& C) {
+    auto n = A.size();
+    auto m = B.size();
+    auto k = B[0].size();
+
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < k; ++j)
+            for (int l = 0; l < m; ++l)
+                C[i][j] += A[i][l] * B[l][j];
+}
+
+void matmul_test(int n, int m, int k) {
+    std::vector<std::vector<int>> A(n, std::vector<int>(m, 0));
+    std::vector<std::vector<int>> B(m, std::vector<int>(k, 0));
+    std::vector<std::vector<int>> C(n, std::vector<int>(k, 0));
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; ++j) {
+            A[i][j] = rand();
+        }
+    }
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < k; ++j) {
+            B[i][j] = rand();
+        }
+    }
+
+    auto D = A, E = B, F = C;
+
+
+    auto t0 = std::chrono::high_resolution_clock::now();
+    matmul(pydex<"::-1, ::">(A), pydex<"...">(B), pydex<"::-1, 0::">(C));
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::cout << "Pydexed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
+
+
+    t0 = std::chrono::high_resolution_clock::now();
+    matmul(D, E, F);
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << "Normal time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
+
+
+
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < k; ++j)
+            if (C[i][j] != F[i][j])
+                std::cerr << "Assertion failed: " << C[i][j] << " != " << m << std::endl;
+}
+
+
+void check_equal(const auto &a, const auto &b) {
+    auto &a_ = pydex<"...">(a);
+    auto &b_ = pydex<"...">(b);
 
     if (a_ != b_) {
         std::cerr << "Assertion failed: " << a_ << " != " << b_ << std::endl;
 
-        std::cerr << "First: " << a.first() << " Last: " << a.last() <<
-                  " Step: " << a.step << " Size: " << a.size() << '\n';
+        std::cerr << "First: " << a.first() << " Last: " << a.last() << " Step: " << a.step << " Size: " << a.size()
+                  << '\n';
     }
 }
+
 template<typename T>
-void check_equal(const auto& a, const std::initializer_list<T>& b) {
-    std::vector<T> v {b};
+void check_equal(const auto &a, const std::initializer_list<T> &b) {
+    std::vector<T> v{b};
     return check_equal(a, v);
 }
 
@@ -33,7 +87,7 @@ int main(int argc, char *argv[]) {
     check_equal(pydex<":-3">(arr), {0, 1, 2, 3, 4, 5, 6});
     check_equal(pydex<"2:5">(arr), {2, 3, 4});
     check_equal(pydex<"-4:-1">(arr), {6, 7, 8});
-    check_equal(pydex<"2:5:2">(arr), {2,4});
+    check_equal(pydex<"2:5:2">(arr), {2, 4});
     check_equal(pydex<"-4:-1:2">(arr), {6, 8});
 
 
@@ -46,62 +100,39 @@ int main(int argc, char *argv[]) {
     check_equal(pydex<"-4:-1:-1">(arr), std::vector<int>{});
     check_equal(pydex<"2:5:2">(arr), {2, 4});
     check_equal(pydex<"-4:-1:2">(arr), {6, 8});
-    std::vector<std::vector<std::vector<int>>> data {
-            {{1, 2, 3}, {4,5, 6}, {7, 8, 9}},
-            {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}},
-            {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}}
-    };
-
+    std::vector<std::vector<std::vector<int>>> data{{{1,  2,  3},  {4,  5,  6},  {7,  8,  9}},
+                                                    {{10, 11, 12}, {13, 14, 15}, {16, 17, 18}},
+                                                    {{19, 20, 21}, {22, 23, 24}, {25, 26, 27}}};
 
 
     check_equal(pydex<":,1::-1,:">(data),
-                std::vector{std::vector{std::vector
-                  {4, 5, 6, },
-                  {1, 2, 3, },
-                 },
-                 {{13, 14, 15, },
-                  {10, 11, 12, },
-                 },
-                 {{22, 23, 24, },
-                  {19, 20, 21, },
-                 },
-                }
-    );
+                std::vector{std::vector{std::vector{4, 5, 6,}, {1, 2, 3,},}, {{13, 14, 15,}, {10, 11, 12,},},
+                            {{22, 23, 24,}, {19, 20, 21,},},});
 
-    check_equal(pydex<":,1::-1,1">(data),
-                std::vector{std::vector
-                            {5, 2, },
-                            {14, 11, },
-                            {23, 20, }}
-                        );
+    check_equal(pydex<":,1::-1,1">(data), std::vector{std::vector{5, 2,}, {14, 11,}, {23, 20,}});
 
-    check_equal(pydex<"::-1,1::-1,1">(data),
-                std::vector{std::vector{23, 20, },
-                                        {14, 11, },
-                                        {5, 2, },
-                }
-    );
+    check_equal(pydex<"::-1,1::-1,1">(data), std::vector{std::vector{23, 20,}, {14, 11,}, {5, 2,},});
 
-    auto c = pydex_::copy(pydex<"::-1,1::-1,1">(data));
-    std::cout << pydex<"...">(c) << '\n';
+    //auto c = pydex_::copy(pydex<"::-1,1::-1,1">(data));
 
     int &scalar = pydex<"1,2,2">(data);
-    std::cout << scalar << '\n';
 
     try {
-        pydex<"1,:,1">(data) = {1, 2, 3, 4, 5, 6};
-    } catch(...) {
-        std::cout << pydex<"...">(data) << '\n';
+        //pydex<"1,:,1">(data) = {1, 2, 3, 4, 5, 6};
+    } catch (...) {
+        //std::cout << pydex<"...">(data) << '\n';
     }
 
 
-   std::vector<std::vector<int>> data2 {
-           {1,2,3},
-           {1,2,3,4,5,6,7,8},
-           {9,10,11,12,13,14,15,16,17,18,19,20}
-   };
+    std::vector<std::vector<int>> data2{{1, 2,  3},
+                                        {1, 2,  3,  4,  5,  6,  7,  8},
+                                        {9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}};
+    pydex<":, :, 1">(data)[-2] = { 2, 3,4};
 
-   std::cout << pydex<"2, :3">(data2)[-3] << '\n';
+    std::cout << pydex<"...">(data) << '\n';
+
+
+    matmul_test(10240, 1024, 1024);
 
     std::cout << "All tests passed!\n";
     return 0;

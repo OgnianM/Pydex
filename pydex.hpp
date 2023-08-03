@@ -177,7 +177,7 @@ constexpr int clip(int x, int lo, int hi) {
     return x < lo ? lo : (x > hi ? hi : x);
 }
 
-template<auto S, Pydexable Vt> requires(S.size() > 0)
+template<auto S, Pydexable Vt, bool bounds_checks = false> requires(S.size() > 0)
 struct View : protected Vt {
     static constexpr int colon_count = count<S[0], ':'>();
     static constexpr bool is_ellipsis = S[0][0] == '.' && S[0][1] == '.' && S[0][2] == '.';
@@ -196,9 +196,9 @@ struct View : protected Vt {
         constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
 
         if constexpr (first < 0) {
-            return clip(int(Vt::size()) + first, 0, Vt::size() - 1);
+            return int(Vt::size()) + first;
         } else {
-            return clip(first, 0, Vt::size());
+            return first;
         }
     }
 
@@ -207,16 +207,17 @@ struct View : protected Vt {
         constexpr auto last = get_if_number<tokenized, 1, false>();
 
         if constexpr (std::is_same_v<std::decay_t<decltype(last)>, bool>) {
-            if (step < 0) {
+            if constexpr (step < 0) {
                 return -1;
             } else {
                 return Vt::size();
             }
         } else {
             if constexpr (last < 0) {
-                return clip(int(Vt::size()) + last, -1, Vt::size());
+                return int(Vt::size()) + last;
+            } else {
+                return last;
             }
-            return clip(last, -1, Vt::size());
         }
     }
 
@@ -242,7 +243,7 @@ struct View : protected Vt {
         return true;
     }
 
-    [[nodiscard]] constexpr size_t size() const {
+    [[nodiscard]] constexpr int size() const noexcept {
         if constexpr (is_slice) {
             auto s = (last() - first());
             return std::max(s / step + bool(s % step), 0);
@@ -302,16 +303,18 @@ private:
             next() = other;
             return *this;
         } else if constexpr (dims_other == dims_this) {
-            if (size() < other.size()) {
-                if (Vt::size() == size()) {
-                    if constexpr (Resizable<Vt>) {
-                        Vt::resize(other.size());
+            if constexpr (bounds_checks) {
+                if (size() < other.size()) {
+                    if (Vt::size() == size()) {
+                        if constexpr (Resizable<Vt>) {
+                            Vt::resize(other.size());
+                        } else {
+                            throw std::runtime_error("Cannot assign to a smaller non-resizable container");
+                        }
                     } else {
-                        throw std::runtime_error("Cannot assign to a smaller non-resizable container");
+                        throw std::runtime_error("Cannot assign data of size " + std::to_string(other.size()) +
+                                                 " to a view of size " + std::to_string(size()));
                     }
-                } else {
-                    throw std::runtime_error("Cannot assign data of size " + std::to_string(other.size()) +
-                    " to a view of size " + std::to_string(size()));
                 }
             }
             if constexpr (Pydexable<decltype(other)>) {
@@ -356,27 +359,31 @@ private:
         } else return next_impl(index);
     }
 
-    constexpr auto &next_impl(int index) const {
+    constexpr auto &next_impl(int index) const noexcept {
         if (index < 0) {
             index = Vt::size() + index;
         }
-
-        if (index >= Vt::size() || index < 0) {
-            throw std::out_of_range("Index out of range");
+        /*
+        if constexpr (bounds_checks) {
+            if (index >= Vt::size() || index < 0) {
+                throw std::out_of_range("Index out of range");
+            }
         }
+            */
+
         auto &k = decay_once();
 
         if constexpr (S.size() == 1) {
             if constexpr (is_ellipsis && rank > 1) {
-                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>> &>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>, bounds_checks> &>(k[index]);
             } else {
                 return k[index];
             }
         } else {
             if constexpr (is_ellipsis && rank > S.size()) {
-                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>> &>(k[index]);
+                return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>, bounds_checks> &>(k[index]);
             } else {
-                auto &m = reinterpret_cast<const View<pop_front<S>(), std::decay_t<decltype(k[index])>> &>(k[index]);
+                auto &m = reinterpret_cast<const View<pop_front<S>(), std::decay_t<decltype(k[index])>, bounds_checks> &>(k[index]);
                 if constexpr (is_number<S[1]>()) {
                     return m.next();
                 } else {
@@ -387,16 +394,6 @@ private:
     }
 
     constexpr auto &index_impl(int i) const {
-
-        if (i < 0) {
-            i = size() + i;
-        }
-
-        if (i >= size()) {
-            throw std::out_of_range("Index " + std::to_string(i) + " out of range of size " +
-                                    std::to_string(size()) );
-        }
-
         if constexpr (is_slice) {
             return next_impl(first() + i * step);
         } else {
@@ -415,10 +412,10 @@ struct Expression : std::array<char, N - 1> {
 }; // namespace detail
 };
 
-template<pydex_::detail::Expression S>
+template<pydex_::detail::Expression S, bool bounds_checks = false>
 constexpr auto &pydex(pydex_::detail::Pydexable auto &v) {
     using namespace pydex_::detail;
-    auto &t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>> &>(v);
+    auto &t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>, bounds_checks> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -426,10 +423,10 @@ constexpr auto &pydex(pydex_::detail::Pydexable auto &v) {
     }
 }
 
-template<pydex_::detail::Expression S>
+template<pydex_::detail::Expression S, bool bounds_checks = false>
 constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
     using namespace pydex_::detail;
-    auto &t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>> &>(v);
+    auto &t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>, bounds_checks> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
     } else {
@@ -443,7 +440,7 @@ namespace pydex_ {
 constexpr auto copy(const auto &v) {
     auto &a = pydex<"...">(v);
     std::decay_t<decltype(a.decay())> b;
-    pydex<"...">(b) = a;
+    pydex<"...", true>(b) = a;
     return b;
 }
 };
