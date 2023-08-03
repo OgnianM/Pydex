@@ -88,7 +88,11 @@ int main(int argc, char *argv[]) {
     int &scalar = pydex<"1,2,2">(data);
     std::cout << scalar << '\n';
 
-   pydex<"1,1,:1">(data) = {1,2,3,4,5,6};
+    try {
+        pydex<"1,:,1">(data) = {1, 2, 3, 4, 5, 6};
+    } catch(...) {
+        std::cout << pydex<"...">(data) << '\n';
+    }
 
 
    std::vector<std::vector<int>> data2 {
@@ -96,9 +100,8 @@ int main(int argc, char *argv[]) {
            {1,2,3,4,5,6,7,8},
            {9,10,11,12,13,14,15,16,17,18,19,20}
    };
-    //pydex<"2,::-2">(data2) = {2,3,4,5,6,7,8,9};
-    std::cout << pydex<"3, 1531">(data2) << '\n';
 
+   std::cout << pydex<"2, :3">(data2)[-3] << '\n';
 
     std::cout << "All tests passed!\n";
     return 0;

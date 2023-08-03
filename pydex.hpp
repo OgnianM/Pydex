@@ -17,6 +17,7 @@
 
 #include <array>
 #include <ostream>
+#include <sstream>
 
 namespace pydex_ {
 namespace detail {
@@ -302,10 +303,15 @@ private:
             return *this;
         } else if constexpr (dims_other == dims_this) {
             if (size() < other.size()) {
-                if constexpr (Resizable<Vt>) {
-                    Vt::resize(other.size());
+                if (Vt::size() == size()) {
+                    if constexpr (Resizable<Vt>) {
+                        Vt::resize(other.size());
+                    } else {
+                        throw std::runtime_error("Cannot assign to a smaller non-resizable container");
+                    }
                 } else {
-                    throw std::runtime_error("Cannot assign to a smaller non-resizable container");
+                    throw std::runtime_error("Cannot assign data of size " + std::to_string(other.size()) +
+                    " to a view of size " + std::to_string(size()));
                 }
             }
             if constexpr (Pydexable<decltype(other)>) {
@@ -381,6 +387,16 @@ private:
     }
 
     constexpr auto &index_impl(int i) const {
+
+        if (i < 0) {
+            i = size() + i;
+        }
+
+        if (i >= size()) {
+            throw std::out_of_range("Index " + std::to_string(i) + " out of range of size " +
+                                    std::to_string(size()) );
+        }
+
         if constexpr (is_slice) {
             return next_impl(first() + i * step);
         } else {
