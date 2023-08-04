@@ -288,6 +288,8 @@ struct View : protected Vt {
     auto begin() const { return Iterator<const View &>(*this); }
     auto end() const { return Iterator<const View &>(*this, View::size()); }
 
+    /// @return a deep copy of the given object with the same type
+    auto copy() const;
 private:
     constexpr auto &next(auto index) const { return next_impl(index); }
     constexpr auto &next(auto index) { return deconst(next_impl(index)); }
@@ -363,14 +365,11 @@ private:
         if (index < 0) {
             index = Vt::size() + index;
         }
-        /*
         if constexpr (bounds_checks) {
             if (index >= Vt::size() || index < 0) {
                 throw std::out_of_range("Index out of range");
             }
         }
-            */
-
         auto &k = decay_once();
 
         if constexpr (S.size() == 1) {
@@ -434,15 +433,15 @@ constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
     }
 }
 
-
 namespace pydex_ {
-/// @return a deep copy of the given object with the same type
-constexpr auto copy(const auto &v) {
-    auto &a = pydex<"...">(v);
-    std::decay_t<decltype(a.decay())> b;
-    pydex<"...", true>(b) = a;
-    return b;
-}
+namespace detail {
+    template<auto S, typename Vt, bool bounds_checks> requires ((Pydexable<Vt>) && S.size() > 0)
+    auto View<S, Vt, bounds_checks>::copy() const {
+        std::decay_t<decltype(decay())> b;
+        pydex<"...", true>(b) = *this;
+        return b;
+    }
+};
 };
 
 template<auto E, pydex_::detail::Pydexable Vt>

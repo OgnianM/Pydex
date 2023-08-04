@@ -17,9 +17,9 @@ void matmul(const auto& A, const auto& B, auto& C) {
 }
 
 void matmul_test(int n, int m, int k) {
-    std::vector<std::vector<int>> A(n, std::vector<int>(m, 0));
+    std::vector<std::vector<float>> A(n, std::vector<float>(m, 0));
     std::vector<std::vector<int>> B(m, std::vector<int>(k, 0));
-    std::vector<std::vector<int>> C(n, std::vector<int>(k, 0));
+    std::vector<std::vector<double>> C(n, std::vector<double>(k, 0));
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; ++j) {
@@ -33,11 +33,13 @@ void matmul_test(int n, int m, int k) {
         }
     }
 
-    auto D = A, E = B, F = C;
+    auto D = A;
+    auto E = B;
+    auto F = C;
 
 
     auto t0 = std::chrono::high_resolution_clock::now();
-    matmul(pydex<"::-1, ::">(A), pydex<"...">(B), pydex<"::-1, 0::">(C));
+    matmul(pydex<"...">(A), pydex<"...">(B), pydex<"...">(C));
     auto t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Pydexed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
 
@@ -46,7 +48,6 @@ void matmul_test(int n, int m, int k) {
     matmul(D, E, F);
     t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Normal time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
-
 
 
     for (int i = 0; i < n; ++i)
@@ -113,15 +114,9 @@ int main(int argc, char *argv[]) {
 
     check_equal(pydex<"::-1,1::-1,1">(data), std::vector{std::vector{23, 20,}, {14, 11,}, {5, 2,},});
 
-    //auto c = pydex_::copy(pydex<"::-1,1::-1,1">(data));
+    auto s = pydex<"1,:,0">(data).copy();
 
-    int &scalar = pydex<"1,2,2">(data);
-
-    try {
-        //pydex<"1,:,1">(data) = {1, 2, 3, 4, 5, 6};
-    } catch (...) {
-        //std::cout << pydex<"...">(data) << '\n';
-    }
+    std::cout << pydex<"...">(s) << '\n';
 
 
     std::vector<std::vector<int>> data2{{1, 2,  3},
