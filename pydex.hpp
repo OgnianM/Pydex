@@ -435,7 +435,7 @@ constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
 
 namespace pydex_ {
 namespace detail {
-    template<auto S, typename Vt, bool bounds_checks> requires ((Pydexable<Vt>) && S.size() > 0)
+    template<auto S, Pydexable Vt, bool bounds_checks> requires (S.size() > 0)
     auto View<S, Vt, bounds_checks>::copy() const {
         std::decay_t<decltype(decay())> b;
         pydex<"...", true>(b) = *this;
