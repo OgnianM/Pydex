@@ -75,7 +75,16 @@ pydex<"199,5">(data2); // throws std::out_of_range
 pydex<"3, 88:1531">(data2) // Empty
 ```
 
+Deep copies:
+```cpp
+std::vector<std::vector<int>> data2{{1, 2,  3},
+                                    {1, 2,  3,  4,  5,  6,  7,  8},
+                                    {9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}};
 
+std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
+// Prints {{2,2,10}}
+std::cout << pydex<"...">(arr3) << '\n';
+```
 <h1> Unsupported </h1>
 
 Variable slicing:

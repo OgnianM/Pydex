@@ -14,7 +14,6 @@
     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
-
 #include <array>
 #include <ostream>
 #include <sstream>
@@ -173,10 +172,6 @@ constexpr auto &deconst(const auto &x) {
     return const_cast<std::decay_t<decltype(x)> &>(x);
 }
 
-constexpr int clip(int x, int lo, int hi) {
-    return x < lo ? lo : (x > hi ? hi : x);
-}
-
 template<auto S, Pydexable Vt, bool bounds_checks = false> requires(S.size() > 0)
 struct View : protected Vt {
     static constexpr int colon_count = count<S[0], ':'>();
@@ -243,14 +238,12 @@ struct View : protected Vt {
         return true;
     }
 
-    [[nodiscard]] constexpr int size() const noexcept {
+    [[nodiscard]] constexpr int size() const {
         if constexpr (is_slice) {
             auto s = (last() - first());
             return std::max(s / step + bool(s % step), 0);
         } else if constexpr (Pydexable<decltype(next())>) {
             return next().size();
-        } else {
-            return 1;
         }
     }
 
@@ -361,7 +354,7 @@ private:
         } else return next_impl(index);
     }
 
-    constexpr auto &next_impl(int index) const noexcept {
+    constexpr auto &next_impl(int index) const {
         if (index < 0) {
             index = Vt::size() + index;
         }
@@ -435,12 +428,12 @@ constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
 
 namespace pydex_ {
 namespace detail {
-    template<auto S, Pydexable Vt, bool bounds_checks> requires (S.size() > 0)
-    auto View<S, Vt, bounds_checks>::copy() const {
-        std::decay_t<decltype(decay())> b;
-        pydex<"...", true>(b) = *this;
-        return b;
-    }
+template<auto S, Pydexable Vt, bool bounds_checks> requires (S.size() > 0)
+auto View<S, Vt, bounds_checks>::copy() const {
+    std::decay_t<decltype(decay())> b;
+    pydex<"...", true>(b) = *this;
+    return b;
+}
 };
 };
 

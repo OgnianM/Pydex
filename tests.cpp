@@ -75,6 +75,7 @@ void check_equal(const auto &a, const std::initializer_list<T> &b) {
     return check_equal(a, v);
 }
 
+
 int main(int argc, char *argv[]) {
     std::array<int, 10> arr;
     std::iota(arr.begin(), arr.end(), 0);
@@ -122,12 +123,12 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int>> data2{{1, 2,  3},
                                         {1, 2,  3,  4,  5,  6,  7,  8},
                                         {9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}};
-    pydex<":, :, 1">(data)[-2] = { 2, 3,4};
 
-    std::cout << pydex<"...">(data) << '\n';
+    std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
+    std::cout << pydex<"...">(arr3) << '\n';
 
 
-    matmul_test(10240, 1024, 1024);
+    //matmul_test(10240, 1024, 1024);
 
     std::cout << "All tests passed!\n";
     return 0;
