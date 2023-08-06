@@ -127,8 +127,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
     std::cout << pydex<"...">(arr3) << '\n';
 
-
-    //matmul_test(10240, 1024, 1024);
+    matmul_test(10240, 1024, 1024);
 
     std::cout << "All tests passed!\n";
     return 0;

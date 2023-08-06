@@ -298,18 +298,16 @@ private:
             next() = other;
             return *this;
         } else if constexpr (dims_other == dims_this) {
-            if constexpr (bounds_checks) {
-                if (size() < other.size()) {
-                    if (Vt::size() == size()) {
-                        if constexpr (Resizable<Vt>) {
-                            Vt::resize(other.size());
-                        } else {
-                            throw std::runtime_error("Cannot assign to a smaller non-resizable container");
-                        }
+            if (size() < other.size()) {
+                if (Vt::size() == size()) {
+                    if constexpr (Resizable<Vt>) {
+                        Vt::resize(other.size());
                     } else {
-                        throw std::runtime_error("Cannot assign data of size " + std::to_string(other.size()) +
-                                                 " to a view of size " + std::to_string(size()));
+                        throw std::runtime_error("Cannot assign to a smaller non-resizable container");
                     }
+                } else {
+                    throw std::runtime_error("Cannot assign data of size " + std::to_string(other.size()) +
+                                             " to a view of size " + std::to_string(size()));
                 }
             }
             if constexpr (Pydexable<decltype(other)>) {
@@ -431,7 +429,7 @@ namespace detail {
 template<auto S, Pydexable Vt, bool bounds_checks> requires (S.size() > 0)
 auto View<S, Vt, bounds_checks>::copy() const {
     std::decay_t<decltype(decay())> b;
-    pydex<"...", true>(b) = *this;
+    pydex<"...">(b) = *this;
     return b;
 }
 };
