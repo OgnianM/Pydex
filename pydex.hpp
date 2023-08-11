@@ -247,14 +247,14 @@ struct View : protected Vt {
         }
     }
 
-    constexpr auto &operator[](auto i) const { return index_impl(i); }
-    constexpr auto &operator[](auto i) { return deconst(index_impl(i)); }
+    constexpr decltype(auto) operator[](auto i) const { return index_impl(i); }
+    constexpr decltype(auto) operator[](auto i) { return deconst(index_impl(i)); }
 
     constexpr auto &decay() const { return decay_impl(); }
     constexpr auto &decay() { return deconst(decay_impl()); }
 
-    constexpr auto &next() const requires(!is_slice) { return next_impl(); }
-    constexpr auto &next() requires(!is_slice) { return deconst(next_impl()); }
+    constexpr decltype(auto) next() const requires(!is_slice) { return next_impl(); }
+    constexpr decltype(auto) next() requires(!is_slice) { return deconst(next_impl()); }
 
     template<typename T>
     struct Iterator {
@@ -284,8 +284,8 @@ struct View : protected Vt {
     /// @return a deep copy of the given object with the same type
     auto copy() const;
 private:
-    constexpr auto &next(auto index) const { return next_impl(index); }
-    constexpr auto &next(auto index) { return deconst(next_impl(index)); }
+    constexpr decltype(auto) next(auto index) const { return next_impl(index); }
+    constexpr decltype(auto) next(auto index) { return deconst(next_impl(index)); }
 
     constexpr View &assignment_impl(const auto &other) {
         constexpr int dims_this = dims;
@@ -345,14 +345,14 @@ private:
         } else return v;
     }
 
-    constexpr auto &next_impl() const requires(!is_slice) {
+    constexpr decltype(auto) next_impl() const requires(!is_slice) {
         constexpr auto index = stoi<S[0]>();
         if constexpr (index < 0) {
             return next_impl(Vt::size() + index);
         } else return next_impl(index);
     }
 
-    constexpr auto &next_impl(int index) const {
+    constexpr decltype(auto) next_impl(int index) const {
         if (index < 0) {
             index = Vt::size() + index;
         }
@@ -383,7 +383,7 @@ private:
         }
     }
 
-    constexpr auto &index_impl(int i) const {
+    constexpr decltype(auto) index_impl(int i) const {
         if constexpr (is_slice) {
             return next_impl(first() + i * step);
         } else {
