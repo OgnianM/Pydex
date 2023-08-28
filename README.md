@@ -91,7 +91,3 @@ Variable slicing:
 ```python
 x = arr[a:b] #unsupported
 ```
-
-<h1> No runtime overhead</h1>
-
-![asm.png](asm.png)
