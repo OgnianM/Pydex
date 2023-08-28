@@ -166,7 +166,6 @@ consteval int ellipsis_count() {
 constexpr auto &deconst(const auto &x) {
     return const_cast<std::decay_t<decltype(x)> &>(x);
 }
-
 template<auto S, Pydexable Vt, bool bounds_checks = false> requires(S.size() > 0)
 struct View : protected Vt {
     static constexpr int colon_count = count<S[0], ':'>();
@@ -186,7 +185,6 @@ struct View : protected Vt {
 
     [[nodiscard]] constexpr int first() const {
         constexpr int first = get_if_number<tokenized, 0, step < 0 ? -1 : 0>();
-
         if constexpr (first < 0) {
             return int(Vt::size()) + first;
         } else {
@@ -348,8 +346,10 @@ private:
     }
 
     constexpr decltype(auto) next_impl(int index) const {
-        if (index < 0) {
-            index = Vt::size() + index;
+        if constexpr (is_slice) {
+            if (index < 0) {
+                index += Vt::size();
+            }
         }
         if constexpr (bounds_checks) {
             if (index >= Vt::size() || index < 0) {
@@ -427,8 +427,8 @@ auto View<S, Vt, bounds_checks>::copy() const {
 }
 };
 
-template<auto E, pydex_::Pydexable Vt>
-std::ostream &operator<<(std::ostream &os, const pydex_::View<E, Vt> &v) {
+template<auto E, pydex_::Pydexable Vt, bool bounds_checks>
+std::ostream &operator<<(std::ostream &os, const pydex_::View<E, Vt, bounds_checks> &v) {
     os << "{";
     for (int j = 0; j < v.size(); j++) {
         auto &i = v[j];

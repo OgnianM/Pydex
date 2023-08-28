@@ -67,8 +67,8 @@ void matmul_test(int n, int m, int k) {
 
 
 void check_equal(const auto &a, const auto &b) {
-    auto &a_ = pydex<"...">(a);
-    auto &b_ = pydex<"...">(b);
+    auto &a_ = pydex<"...", true>(a);
+    auto &b_ = pydex<"...", true>(b);
 
     if (a_ != b_) {
         std::cerr << "Assertion failed: " << a_ << " != " << b_ << std::endl;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
                                         {9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}};
 
     std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
-    std::cout << pydex<"...">(arr3) << '\n';
+    std::cout << pydex<"...">(arr3)[-1] << '\n';
 
     matmul_test(5033, 1024, 1024);
 
