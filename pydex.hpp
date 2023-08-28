@@ -19,8 +19,6 @@
 #include <sstream>
 
 namespace pydex_ {
-namespace detail {
-
 template<auto S>
 consteval int size() {
     int s = 0;
@@ -399,12 +397,11 @@ struct Expression : std::array<char, N - 1> {
             (*this)[i] = cstr[i];
     }
 };
-}; // namespace detail
-};
+}; // namespace pydex
 
-template<pydex_::detail::Expression S, bool bounds_checks = false>
-constexpr auto &pydex(pydex_::detail::Pydexable auto &v) {
-    using namespace pydex_::detail;
+template<pydex_::Expression S, bool bounds_checks = false>
+constexpr auto &pydex(pydex_::Pydexable auto &v) {
+    using namespace pydex_;
     auto &t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>, bounds_checks> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
@@ -413,9 +410,9 @@ constexpr auto &pydex(pydex_::detail::Pydexable auto &v) {
     }
 }
 
-template<pydex_::detail::Expression S, bool bounds_checks = false>
-constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
-    using namespace pydex_::detail;
+template<pydex_::Expression S, bool bounds_checks = false>
+constexpr auto &pydex(const pydex_::Pydexable auto &v) {
+    using namespace pydex_;
     auto &t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>, bounds_checks> &>(v);
     if constexpr (!std::decay_t<decltype(t)>::is_slice) {
         return t.next();
@@ -425,7 +422,6 @@ constexpr auto &pydex(const pydex_::detail::Pydexable auto &v) {
 }
 
 namespace pydex_ {
-namespace detail {
 template<auto S, Pydexable Vt, bool bounds_checks> requires (S.size() > 0)
 auto View<S, Vt, bounds_checks>::copy() const {
     std::decay_t<decltype(decay())> b;
@@ -433,10 +429,9 @@ auto View<S, Vt, bounds_checks>::copy() const {
     return b;
 }
 };
-};
 
-template<auto E, pydex_::detail::Pydexable Vt>
-std::ostream &operator<<(std::ostream &os, const pydex_::detail::View<E, Vt> &v) {
+template<auto E, pydex_::Pydexable Vt>
+std::ostream &operator<<(std::ostream &os, const pydex_::View<E, Vt> &v) {
     os << "{";
     for (int j = 0; j < v.size(); j++) {
         auto &i = v[j];
@@ -444,7 +439,7 @@ std::ostream &operator<<(std::ostream &os, const pydex_::detail::View<E, Vt> &v)
         if (j == v.size() - 1) {
             break;
         }
-        if constexpr (pydex_::detail::View<E, Vt>::rank == 1) {
+        if constexpr (pydex_::View<E, Vt>::rank == 1) {
             os << ", ";
         } else {
             os << std::endl;
