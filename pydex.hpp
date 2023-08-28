@@ -128,20 +128,17 @@ template<typename T> concept Resizable = requires(T x) { x.resize(0); };
 
 template<typename T> concept Decayable = requires(T x) { x.decay(); };
 
-template<typename T>
-requires (!Pydexable<T> && !SizedIterable<T>)
+template<typename T> requires (!Pydexable<T> && !SizedIterable<T>)
 consteval int dimensionality() {
     return 0;
 }
 
-template<typename T>
-requires (Pydexable<T>)
+template<typename T> requires (Pydexable<T>)
 consteval int dimensionality() {
     return 1 + dimensionality<decltype(std::declval<T>()[0])>();
 }
 
-template<typename T>
-requires (!Pydexable<T> && SizedIterable<T>)
+template<typename T> requires (!Pydexable<T> && SizedIterable<T>)
 consteval int dimensionality() {
     return 1 + dimensionality<decltype(*std::declval<T>().begin())>();
 }
@@ -179,6 +176,8 @@ struct View : protected Vt {
     static constexpr int dims = dimensionality<View>();
     static constexpr auto tokenized = split<S[0], ':'>();
     static constexpr int step = get_if_number<tokenized, 2, 1>();
+    static constexpr bool full_slice = is_slice && std::is_same_v<decltype(get_if_number<tokenized, 0, false>()), bool>
+            && std::is_same_v<decltype(get_if_number<tokenized, 1, false>()), bool> && (step == 1 || step == -1);
 
     static_assert(colon_count <= 2, "Too many colons");
     static_assert(step != 0, "Step cannot be 0");
@@ -297,7 +296,7 @@ private:
             return *this;
         } else if constexpr (dims_other == dims_this) {
             if (size() < other.size()) {
-                if (Vt::size() == size()) {
+                if constexpr (full_slice) {
                     if constexpr (Resizable<Vt>) {
                         Vt::resize(other.size());
                     } else {
@@ -312,15 +311,13 @@ private:
                 for (int i = 0; i < other.size(); ++i) {
                     (*this)[i] = other[i];
                 }
-
             } else {
                 int i = 0;
                 for (const auto &j: other) {
                     (*this)[i++] = j;
                 }
             }
-
-        } else if constexpr (dims_other <= dims_this) {
+        } else if constexpr (dims_other < dims_this) {
             if (this->size() == 0) {
                 Vt::resize(1);
             }

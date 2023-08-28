@@ -37,6 +37,10 @@ void matmul_test(int n, int m, int k) {
     auto E = B;
     auto F = C;
 
+    auto G = A;
+    auto H = B;
+    auto I = C;
+
 
     auto t0 = std::chrono::high_resolution_clock::now();
     matmul(pydex<"...">(A), pydex<"...">(B), pydex<"...">(C));
@@ -48,6 +52,11 @@ void matmul_test(int n, int m, int k) {
     matmul(D, E, F);
     t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Normal time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
+
+    t0 = std::chrono::high_resolution_clock::now();
+    matmul(pydex<"...", true>(G), pydex<"...", true>(H), pydex<"...", true>(I));
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << "Pydexed bounds checked time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
 
 
     for (int i = 0; i < n; ++i)
@@ -127,7 +136,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
     std::cout << pydex<"...">(arr3) << '\n';
 
-    matmul_test(10240, 1024, 1024);
+    matmul_test(5033, 1024, 1024);
 
     std::cout << "All tests passed!\n";
     return 0;
