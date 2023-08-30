@@ -16,7 +16,6 @@
 #pragma once
 #include <array>
 #include <ostream>
-#include <sstream>
 
 namespace pydex_ {
 template<auto S>

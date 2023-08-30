@@ -94,6 +94,7 @@ x = arr[a:b] #unsupported
 
 <h1> Bounds checking </h1>
 Bounds checking has to be enabled manually due to its significant performance overhead
+
 ```cpp
-pydex<"...", /*bounds check*/ true>(...);
+pydex<"...", /*bounds checks*/ true>(...);
 ```
