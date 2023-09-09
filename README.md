@@ -93,8 +93,10 @@ x = arr[a:b] #unsupported
 ```
 
 <h1> Bounds checking </h1>
-Bounds checking has to be enabled manually due to its significant performance overhead
+Bounds checking can be disabled manually like so
 
 ```cpp
-pydex<"...", /*bounds checks*/ true>(...);
+pydex<"...", /*bounds checks*/ false>(...);
 ```
+
+Disabling it will break some things but keeping it enabled has significant performance overhead

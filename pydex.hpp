@@ -187,7 +187,11 @@ struct View : protected Vt {
         if constexpr (first < 0) {
             return int(Vt::size()) + first;
         } else {
-            return first;
+            if constexpr (bounds_checks) {
+                return std::min(first, int(Vt::size()));
+            } else {
+                return first;
+            }
         }
     }
 
@@ -205,7 +209,11 @@ struct View : protected Vt {
             if constexpr (last < 0) {
                 return int(Vt::size()) + last;
             } else {
-                return last;
+                if constexpr (bounds_checks) {
+                    return std::min(last, int(Vt::size()));
+                } else {
+                    return last;
+                }
             }
         }
     }
@@ -356,7 +364,6 @@ private:
             }
         }
         auto &k = decay_once();
-
         if constexpr (S.size() == 1) {
             if constexpr (is_ellipsis && rank > 1) {
                 return reinterpret_cast<const View<S, std::decay_t<decltype(k[index])>, bounds_checks> &>(k[index]);
@@ -395,7 +402,7 @@ struct Expression : std::array<char, N - 1> {
 };
 }; // namespace pydex
 
-template<pydex_::Expression S, bool bounds_checks = false>
+template<pydex_::Expression S, bool bounds_checks = true>
 constexpr auto &pydex(pydex_::Pydexable auto &v) {
     using namespace pydex_;
     auto &t = reinterpret_cast<View<split<sanitize<S>(), ','>(), std::decay_t<decltype(v)>, bounds_checks> &>(v);
@@ -406,7 +413,7 @@ constexpr auto &pydex(pydex_::Pydexable auto &v) {
     }
 }
 
-template<pydex_::Expression S, bool bounds_checks = false>
+template<pydex_::Expression S, bool bounds_checks = true>
 constexpr auto &pydex(const pydex_::Pydexable auto &v) {
     using namespace pydex_;
     auto &t = reinterpret_cast<const View<split<sanitize<S>(), ','>(), const std::decay_t<decltype(v)>, bounds_checks> &>(v);

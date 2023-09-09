@@ -3,6 +3,7 @@
 #include <iostream>
 #include <numeric>
 #include <chrono>
+#include <cassert>
 
 
 void matmul(const auto& A, const auto& B, auto& C) {
@@ -43,7 +44,7 @@ void matmul_test(int n, int m, int k) {
 
 
     auto t0 = std::chrono::high_resolution_clock::now();
-    matmul(pydex<"...">(A), pydex<"...">(B), pydex<"...">(C));
+    matmul(pydex<"...", false>(A), pydex<"...", false>(B), pydex<"...", false>(C));
     auto t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Pydexed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << std::endl;
 
@@ -132,6 +133,10 @@ int main(int argc, char *argv[]) {
     std::vector<std::vector<int>> data2{{1, 2,  3},
                                         {1, 2,  3,  4,  5,  6,  7,  8},
                                         {9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}};
+
+
+    assert(pydex<"0, 33:55">(data2).copy().empty());
+
 
     std::vector<std::vector<int>> arr3 = pydex<":, 1">(data2).copy();
     std::cout << pydex<"...">(arr3)[-1] << '\n';
